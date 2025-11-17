@@ -1,6 +1,8 @@
-## **Formal Design Proposal: Data Sync Operator**
+## **Formal Design Proposal: VMDiskImage Controller/CRD**
 
-This document proposes the creation of a Kubernetes Operator to automate and control the deployment of resource-intensive Kubernetes Storage Objects which are the backing of workspaces hosted on Open Terrain (OT). A given workspace can have multiple versions actively in use at one time. The proposed system will replace a manual process with an automated, on-demand workflow that prevents network saturation and controls data transfer costs. This is achieved by introducing a `DataSync` Custom Resource Definition (CRD) to act as a record for the data required to boot a workspace. A controller is also created that orchestrates the creation of the storage objects represented by the CRD while adhering to a globally defined sync policy stored in a `ConfigMap`.
+This document proposes the creation of a Kubernetes Controller and CRD to automate and control the deployment of resource-intensive Kubernetes Storage Objects which are the backing of workspace VMs hosted on Open Terrain (OT). A Open Terrian Workspace can consist of one or more virutal machines and containers.
+
+The proposed system will replace a manual process with an automated, on-demand workflow that prevents network saturation and controls data transfer costs. This is achieved by introducing a `VMDiskImage` Custom Resource Definition (CRD) to act as a record for the data required to boot a workspace. A controller is also created that orchestrates the creation of the storage objects represented by the CRD while adhering to a globally defined sync policy stored in a `ConfigMap`.
 
 ### 2. Background and Problem Statement
 Currently workspaces on OT require sets of storage objects to exist as prerequisite of the creation of instances of workspaces. The creation of these sets of storage resources initiates a significant data download to get the data which will back workspaces. The manual process for managing these storage objects, referred to as syncing by the team, has lead to several issues:
@@ -17,11 +19,11 @@ Currently workspaces on OT require sets of storage objects to exist as prerequis
 
 
 ### **3. Proposed Controller Architecture**
-The proposed architecture is built on standard Kubernetes patterns, consisting of a `ConfigMap` for policy definition, a CRD to represent the data required to boot a workspace, and a custom Operator to handle orchestration of resources.
+The proposed architecture is built on standard Kubernetes patterns, consisting of a `ConfigMap` for policy definition, a CRD to represent the data required to boot a workspace, and a custom Controller to handle orchestration of resources.
 
 #### **3.1 The Policy `ConfigMap`**
 
-To avoid the complexity of a new CRD for policy, the operator's behavior will be defined by a single, cluster-wide `ConfigMap`. This provides a simple, declarative way to configure the system's rules without requiring an operator restart.
+To avoid the complexity of a new CRD for policy, the operator's behavior will be defined by a single, cluster-wide `ConfigMap`.
 
 **Example `ConfigMap` Manifest:**
 ```yaml
@@ -32,7 +34,7 @@ metadata:
   # This should be in the same namespace as the operator
   namespace: sync-operator
 data:
-  # The maximum number of DataSync allowed to be syncing at once.
+  # The maximum number of VMDiskImage allowed to be syncing at once.
   concurrency: "4"
   # The number of times to retry a failed sync.
   retryLimit: "2"
@@ -40,20 +42,24 @@ data:
   retryBackoffDuration: "5m"
 ```
 
-#### **3.2 `DataSync` CRD**
+#### **3.2 `VMDiskImage` CRD**
 
-The CRD will acts as a way for us to manage the lifecycle of the set of data required for a given workspace.
+Workspaces resources are composed of many different individual VMs and container Imagaes. A VMDiskImage represents the data required to start a particular version of a VM resource. A workspace that makes use of many VMs will have many VMDiskImage CRDs within the cluster.
 
-**Example `DataSync` Manifest:**
+**Example `VMDiskImage` Manifest:**
 ```yaml
 apiVersion: "pelotech.ot/v1alpha1"
-kind: "DataSync"
+kind: "VMDiskImage"
 metadata:
   name: "sync-workspace-123"
 spec:
-  # The unique identifier for the workspace to be synced.
-  workspaceId: "035"
-  vms: "yaml list of vms with name, url, sourceType"
+  storageClass: "gp3"
+  snapshotClass: "ebs-snapshot"
+  secretRef: "foo-bar"
+  name: "harrison-vm"
+  url: "https://s3.us-gov-west-1.amazonaws.com/uki-lrn-vm-images/images/lab-151/1.0.0/attacker.qcow2"
+  sourceType: "s3"
+  diskSize: "24Gi"
 # The operator manages this section to provide real-time status and auditability.
 status:
   phase: "Queued"
@@ -64,37 +70,37 @@ type: "Ready"
       lastTransitionTime: "2025-07-11T20:57:00Z"
 ```
 
-#### **3.3: The Operator**
-The operator is the core of the system, acting as an intelligent controller that connects management of workspace Data to a predefined policy.
+#### **3.3: The Controller**
+The Controller is the core of the system, ensuring that resources are managed intelligently.
 **Operator Logic:**
 - **Initialization**: On startup, the operator reads its configuration from the `sync-operator-policy` `ConfigMap`.
-- **Watch for Requests**: The operator watches for new `DataSync` resources to be created in the cluster. The operator will also watch for changes on the configmap to ensure it enforces the correct rules.
+- **Watch for Requests**: The operator watches for new `VMDiskImage` resources to be created in the cluster.
 - **Queue Requests**: When a new request is detected, it is added to a single, global First-In, First-Out (FIFO) queue.
 - **Enforce Policy**: The operator processes the queue, ensuring the number of active syncs never exceeds the `concurrency` limit from the `ConfigMap`. It creates the storage objects respecting the defined retry logic.
-- **Provide Status**: The operator provides real-time feedback by continuously updating the `status` field of the `DataSync` resource as it moves through its lifecycle (e.g., `Queued`, `Syncing`, `Succeeded`, `Failed`).
+- **Provide Status**: The operator provides real-time feedback by continuously updating the `status` field of the `VMDiskImage` resource as it moves through its lifecycle (e.g., `Queued`, `Syncing`, `Succeeded`, `Failed`).
 
-### **4. End-to-End Operator Workflow**
+### **4. End-to-End Controller Workflow**
 ```mermaid
 flowchart TD
     subgraph "Setup (Admin)"
         A["Admin configures the 'sync-operator-policy' ConfigMap"]
     end
     subgraph "Event (User/CI)"
-        B["User or CI system creates a DataSync resource"]
+        B["User or CI system creates a VMDiskImage resource"]
     end
-    subgraph "Operator Logic"
-        C{"Operator detects the new request"};
+    subgraph "Controller Logic"
+        C{"Controller detects the new request"};
         A --> C;
         B --> C;
         C --> D["Request is added to a global queue"];
-        D --> E["Operator processes queue, respecting the concurrency limit"];
-        E --> F["Operator triggers sync with retry rules"];
-        F --> G["Operator updates status on the DataSync"];
+        D --> E["Controller processes queue, respecting the concurrency limit"];
+        E --> F["Controller triggers sync with retry rules"];
+        F --> G["Controller updates status on the VMDiskImage"];
     end
 ```
 ### **5. Addressing the need to preload resources**
 
-The team currently has a pipeline which we use to publish workspaces we can hook into the pipeline to create or update existing `DataSync` resources as well. This would ideally allow the team to keep all our resources as fresh as possible and use current team workflows to accomplish this.
+The team currently has a pipeline which we use to publish workspaces. We can hook into the pipeline to create or update existing `VMDiskImage` resources as well. This would ideally allow the team to keep all our resources as fresh as possible and use current team workflows to accomplish this.
 
 An alternative option would be to increase the complexity of the operator to "watch" a some source of truth however given the required complexity to accomplish this the team has chosen to go with the option that is the least amount of lift.
 
