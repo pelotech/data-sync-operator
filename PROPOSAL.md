@@ -57,7 +57,7 @@ spec:
   snapshotClass: "ebs-snapshot"
   secretRef: "foo-bar"
   name: "harrison-vm"
-  url: "https://s3.us-gov-west-1.amazonaws.com/uki-lrn-vm-images/images/lab-151/1.0.0/attacker.qcow2"
+  url: "https://s3.us-gov-west-1.amazonaws.com/vm-images/images/harrison-vm/1.0.0/vm.qcow2"
   sourceType: "s3"
   diskSize: "24Gi"
 # The operator manages this section to provide real-time status and auditability.
