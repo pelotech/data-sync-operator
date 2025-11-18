@@ -18,10 +18,14 @@ limitations under the License.
 
 import (
 	"context"
+	crdv1 "pelotech/data-sync-operator/api/v1"
+	vmdiconfig "pelotech/data-sync-operator/internal/vm-disk-image/config"
+	resourcegenservice "pelotech/data-sync-operator/internal/vm-disk-image/service/resource-gen-service"
+	resourcemanagerservice "pelotech/data-sync-operator/internal/vm-disk-image/service/resource-manager-service"
+	vmdiservice "pelotech/data-sync-operator/internal/vm-disk-image/service/vmdi-service"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	crdv1 "pelotech/data-sync-operator/api/v1"
-	vmdiservice "pelotech/data-sync-operator/internal/vm-disk-image/service/vmdi-service"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -107,6 +111,8 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 }
 
 // SetupWithManager sets up the controller with the Manager.
+// By convention in kubebuilder this is where we are going to setup anything
+// the controller requires
 func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	// Index resources by phase since we have to query these quite a bit
@@ -116,8 +122,36 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
+	config := vmdiconfig.LoadVMDIControllerConfigFromEnv()
+
+	resourceGenerator := &resourcegenservice.Generator{}
+
+	client := mgr.GetClient()
+
+	resourceManager := resourcemanagerservice.Manager{
+		K8sClient:         client,
+		ResourceGenerator: resourceGenerator,
+		MaxSyncDuration:   config.MaxSyncDuration,
+		RetryLimit:        config.RetryLimit,
+	}
+
+	service := vmdiservice.Service{
+		Client:           client,
+		Recorder:         mgr.GetEventRecorderFor("vmdi-controller"),
+		ResourceManager:  resourceManager,
+		ConcurrencyLimit: config.Concurrency,
+		RetryLimit:       config.RetryLimit,
+		RetryBackoff:     config.RetryBackoffDuration,
+	}
+
+	reconciler := &VMDiskImageReconciler{
+		Client: client,
+		Scheme: mgr.GetScheme(),
+		VMDiskImageService: service,
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crdv1.VMDiskImage{}).
 		Named("vmdiskimage").
-		Complete(r)
+		Complete(reconciler)
 }
