@@ -37,6 +37,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	crdv1 "pelotech/data-sync-operator/api/v1"
 	"pelotech/data-sync-operator/internal/controller"
 	// +kubebuilder:scaffold:imports
@@ -51,6 +53,10 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(crdv1.AddToScheme(scheme))
+
+	// Add the resources related to the volume and volumesnapshot we use for the vmdiskimage resource workflow
+	utilruntime.Must(cdiv1beta1.AddToScheme(scheme))
+	utilruntime.Must(snapshotv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
