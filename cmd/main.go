@@ -40,7 +40,7 @@ import (
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	crdv1 "pelotech/data-sync-operator/api/v1"
-	"pelotech/data-sync-operator/internal/controller"
+	vmdiskimagectrl "pelotech/data-sync-operator/internal/vm-disk-image/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -208,7 +208,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := (&controller.VMDiskImageReconciler{
+	if err := (&vmdiskimagectrl.VMDiskImageReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
