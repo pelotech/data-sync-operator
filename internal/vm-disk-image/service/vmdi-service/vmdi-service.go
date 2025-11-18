@@ -17,7 +17,7 @@ import (
 
 type VMDiskImageService interface {
 	IndexVMDiskImageByPhase(rawObj client.Object) []string
-	ListVMDiskImagesByPhase(ctx context.Context, c client.Client, phase string) (*crdv1.VMDiskImageList, error)
+	ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error)
 	QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
 	AttemptSyncingOfResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
 	TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
@@ -32,9 +32,10 @@ type Service struct {
 	ConcurrencyLimit int
 	RetryLimit       int
 	RetryBackoff     time.Duration
+	SyncLimit        int
 }
 
-func (s *Service) ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error) {
+func (s Service) ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error) {
 	list := &crdv1.VMDiskImageList{}
 
 	listOpts := []client.ListOption{
@@ -48,7 +49,7 @@ func (s *Service) ListVMDiskImagesByPhase(ctx context.Context, phase string) (*c
 	return list, nil
 }
 
-func (s *Service) IndexVMDiskImageByPhase(rawObj client.Object) []string {
+func (s Service) IndexVMDiskImageByPhase(rawObj client.Object) []string {
 	vmdi, ok := rawObj.(*crdv1.VMDiskImage)
 
 	if !ok {
@@ -62,7 +63,7 @@ func (s *Service) IndexVMDiskImageByPhase(rawObj client.Object) []string {
 	return []string{vmdi.Status.Phase}
 }
 
-func (s *Service) QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
+func (s Service) QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseQueued
 	vmdi.Status.Message = "Request is waiting for an available worker."
 
@@ -81,7 +82,113 @@ func (s *Service) QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskI
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (s *Service) HandleResourceUpdateError(
+func (s Service) AttemptSyncingOfResource(
+	ctx context.Context,
+	vmdi *crdv1.VMDiskImage,
+) (ctrl.Result, error) {
+	logger := logf.FromContext(ctx)
+
+	syncingList, err := s.ListVMDiskImagesByPhase(ctx, crdv1.VMDiskImagePhaseSyncing)
+
+	if err != nil {
+		logger.Error(err, "Failed to list syncing resources")
+		return ctrl.Result{}, err
+	}
+
+	if len(syncingList.Items) >= s.SyncLimit {
+		s.Recorder.Eventf(vmdi, "Normal", "WaitingToSync", "No more than %d VMDiskImages can be syncing at once. Waiting...", s.SyncLimit)
+		return ctrl.Result{RequeueAfter: s.RetryBackoff}, nil
+	}
+
+	err = s.ResourceManager.CreateResources(ctx, vmdi)
+
+	if err != nil {
+		s.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources: "+err.Error())
+		return s.HandleResourceCreationError(ctx, vmdi, err)
+	}
+
+	vmdi.Status.Phase = crdv1.VMDiskImagePhaseSyncing
+	vmdi.Status.Message = "Syncing VM data for the workspace."
+	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
+		Type:    crdv1.VMDiskImageTypeReady,
+		Status:  metav1.ConditionFalse,
+		Reason:  "Syncing",
+		Message: "The sync is currently in progress.",
+	})
+
+	if err := s.Status().Update(ctx, vmdi); err != nil {
+		return s.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Syncing")
+	}
+
+	orginalDs := vmdi.DeepCopy()
+
+	now := time.Now().Format(time.RFC3339)
+
+	vmdi.Annotations[crdv1.SyncStartTimeAnnotation] = now
+
+	if err := s.Client.Patch(ctx, vmdi, client.MergeFrom(orginalDs)); err != nil {
+		return s.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update sync start time")
+	}
+
+	s.Recorder.Eventf(vmdi, "Normal", "SyncStarted", "Resource sync has started")
+
+	return ctrl.Result{}, nil
+}
+
+func (s Service) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
+	logger := logf.FromContext(ctx)
+
+	// Check if there is an error occurring in the sync
+	syncError := s.ResourceManager.ResourcesHaveErrors(ctx, vmdi)
+
+	if syncError != nil {
+		logger.Error(syncError, "A sync error has occurred.")
+		return s.HandleSyncError(ctx, vmdi, syncError, "A error has occurred while syncing")
+	}
+
+	// Check if the sync is done is not done
+	isDone, err := s.ResourceManager.ResourcesAreReady(ctx, vmdi)
+
+	if err != nil {
+		logger.Error(err, "Unable to verify if resource is ready or not.")
+	}
+
+	if !isDone {
+		logger.Info("Sync is not complete. Requeueing.")
+		return ctrl.Result{RequeueAfter: s.RetryBackoff}, nil
+	}
+
+	vmdi.Status.Phase = crdv1.VMDiskImagePhaseCompleted
+	vmdi.Status.Message = "The data sync completed successfully."
+	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
+		Type:    crdv1.VMDiskImageTypeReady,
+		Status:  metav1.ConditionTrue,
+		Reason:  "Completed",
+		Message: "The sync finished successfully.",
+	})
+
+	if err := s.Status().Update(ctx, vmdi); err != nil {
+		return s.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Completed")
+	}
+
+	s.Recorder.Eventf(vmdi, "Normal", "SyncCompleted", "Resource sync completed successfully")
+
+	return ctrl.Result{}, nil
+}
+
+func (s Service) DeleteResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
+	logger := logf.FromContext(ctx)
+
+	err := s.ResourceManager.TearDownAllResources(ctx, vmdi)
+
+	if err != nil {
+		logger.Error(err, "failed to cleanup child resources of VMDiskImage.")
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (s Service) HandleResourceUpdateError(
 	ctx context.Context,
 	vmdi *crdv1.VMDiskImage,
 	originalErr error,
@@ -107,7 +214,7 @@ func (s *Service) HandleResourceUpdateError(
 	return ctrl.Result{}, originalErr
 }
 
-func (s *Service) HandleResourceCreationError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error) (ctrl.Result, error) {
+func (s Service) HandleResourceCreationError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 	logger.Info("Handling a reousrce creation failure")
 	logger.Error(originalErr, "Failed to create a resource when trying to intiate resource sync")
@@ -136,7 +243,7 @@ func (s *Service) HandleResourceCreationError(ctx context.Context, vmdi *crdv1.V
 	return ctrl.Result{}, originalErr
 }
 
-func (s *Service) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error, message string) (ctrl.Result, error) {
+func (s Service) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error, message string) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 	logger.Error(originalErr, message)
 
