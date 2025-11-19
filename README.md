@@ -28,7 +28,7 @@ To init the cluster please run
 make setup-test-e2e
 ```
 
-This command will stand up a kind cluster locally. The cluster will have all all dependencies installed.
+This command will stand up a kind cluster locally. The cluster will have all all dependencies and our crd installed.
 
 > **NOTE**: Please ensure you are using the correct context before running the below commands. We are installing stuff into the cluster.
 
@@ -60,23 +60,12 @@ make run
 
 ##### Making Changes to the shape of our CRDs.
 
-If you need to make changes to the shape of a CRD you will need to regenerate manifests and code created via kubebuilder. To do so please run the following commands in order.
+If you need to make changes to the shape of a CRD you will need to regenerate manifests and code created via kubebuilder.
 
-The below command will uninstall your CRD from the cluster.
-```bash
-make uninstall
-```
-
-Then run these commands to regenerate the code and manifests.
+The below command will refresh the crd and reinstall it.
 
 ```bash
-make generate
-make manifests
-```
-
-Finally re-install your CRD.
-```
-make install
+make regenerate-crd
 ```
 
 ### To Deploy on the cluster
