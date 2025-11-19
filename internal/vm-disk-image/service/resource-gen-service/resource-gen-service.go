@@ -2,12 +2,14 @@ package resourcegenservice
 
 import (
 	"errors"
+	"maps"
 
 	crdv1 "pelotech/data-sync-operator/api/v1"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/ptr"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,11 +36,10 @@ func (g *Generator) CreateStorageManifests(
 }
 
 func createDataVolume(vmdi *crdv1.VMDiskImage) (*cdiv1beta1.DataVolume, error) {
-	blockOwnerDeletion := true
 	ownerReferences := []metav1.OwnerReference{
 		{
 			APIVersion:         "v1",
-			BlockOwnerDeletion: &blockOwnerDeletion,
+			BlockOwnerDeletion: ptr.To(true),
 			Kind:               "VMDiskImage",
 			Name:               vmdi.Name,
 			UID:                vmdi.UID,
@@ -120,11 +121,10 @@ func createDataVolume(vmdi *crdv1.VMDiskImage) (*cdiv1beta1.DataVolume, error) {
 }
 
 func createVolumeSnapshot(vmdi *crdv1.VMDiskImage) *snapshotv1.VolumeSnapshot {
-	blockOwnerDeletion := true
 	ownerReferences := []metav1.OwnerReference{
 		{
 			APIVersion:         "v1",
-			BlockOwnerDeletion: &blockOwnerDeletion,
+			BlockOwnerDeletion: ptr.To(true),
 			Kind:               "VMDiskImage",
 			Name:               vmdi.Name,
 			UID:                vmdi.UID,
@@ -158,8 +158,17 @@ func createVolumeSnapshot(vmdi *crdv1.VMDiskImage) *snapshotv1.VolumeSnapshot {
 	}
 }
 
+// Give our created resources a new map of labels
 func withOperatorLabels(labels map[string]string, ownerName string) map[string]string {
-	labels[crdv1.VMDiskImageOwnerLabel] = ownerName
+	// 1. Create a brand new map
+	newLabels := make(map[string]string)
+
+	// Copy the existing labels if we have any
+	if len(labels) > 0 {
+		maps.Copy(newLabels, labels)
+	}
+
+	newLabels[crdv1.VMDiskImageOwnerLabel] = ownerName
 
 	return labels
 }
