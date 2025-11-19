@@ -41,12 +41,12 @@ const (
 	VMDiskImagePhaseFailed    string = "Failed"
 )
 
-// Datasync Labels
+// VMDiskImage Labels
 const (
 	VMDiskImageOwnerLabel string = "owner"
 )
 
-// Datasync Annotations
+// VMDiskImage Annotations
 const (
 	SyncStartTimeAnnotation = "sync-start-time"
 )
