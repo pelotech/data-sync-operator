@@ -106,8 +106,10 @@ type VMDiskImageStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-
-// VMDiskImage is the Schema for the vmdiskimages API.
+// +kubebuilder:resource:path=vmdiskimages,scope=Namespaced,shortName=vmdi,singular=vmdiskimage
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="The current phase of the VMDiskImage."
+// +kubebuilder:printcolumn:name="Resource Name",type="string",JSONPath=".spec.name",description="The name of the resource we are syncing."
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type VMDiskImage struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -118,10 +120,6 @@ type VMDiskImage struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=vmdiskimages,scope=Namespaced,singular=vmdiskimage
-// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="The current phase of the VMDiskImage."
-// +kubebuilder:printcolumn:name="Resource Name",type="string",JSONPath=".spec.name",description="The name of the resource we are syncing."
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type VMDiskImageList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

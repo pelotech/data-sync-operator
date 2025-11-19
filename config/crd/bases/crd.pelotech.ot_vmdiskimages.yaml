@@ -11,13 +11,26 @@ spec:
     kind: VMDiskImage
     listKind: VMDiskImageList
     plural: vmdiskimages
+    shortNames:
+    - vmdi
     singular: vmdiskimage
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - description: The current phase of the VMDiskImage.
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: The name of the resource we are syncing.
+      jsonPath: .spec.name
+      name: Resource Name
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
     schema:
       openAPIV3Schema:
-        description: VMDiskImage is the Schema for the vmdiskimages API.
         properties:
           apiVersion:
             description: |-
