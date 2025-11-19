@@ -7,10 +7,9 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	corev1 "k8s.io/api/core/v1"
 	crdv1 "pelotech/data-sync-operator/api/v1"
 	resourcegenservice "pelotech/data-sync-operator/internal/vm-disk-image/service/resource-gen-service"
-
-	corev1 "k8s.io/api/core/v1"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
@@ -45,13 +44,13 @@ func (m Manager) CreateResources(
 		return err
 	}
 
-	err = m.K8sClient.Patch(ctx, dv, client.Apply, client.FieldOwner("data-sync-operator"))
+	err = m.K8sClient.Patch(ctx, dv, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
 
 	if err != nil {
 		return err
 	}
 
-	err = m.K8sClient.Patch(ctx, vs, client.Apply, client.FieldOwner("data-sync-operator"))
+	err = m.K8sClient.Patch(ctx, vs, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
 
 	if err != nil {
 		return err
