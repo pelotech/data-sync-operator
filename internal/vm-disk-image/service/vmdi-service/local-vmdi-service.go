@@ -33,7 +33,7 @@ func (s LocalVMDIService) AttemptSyncingOfResource(
 
 	// Check if the number is greater than 5.
 	if randomNumber > 5 {
-			return s.HandleSyncError(ctx, vmdi, errors.New("forced error"), "Forced")
+		return s.HandleSyncError(ctx, vmdi, errors.New("forced error"), "Forced")
 	} else {
 		return res, err
 	}
