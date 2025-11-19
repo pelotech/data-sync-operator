@@ -40,6 +40,8 @@ help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
+.PHONY: regenerate-crds
+regenerate-crds: uninstall generate manifests install
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -68,19 +70,6 @@ test: manifests generate fmt vet setup-envtest ## Run tests.
 KIND_CLUSTER ?= data-sync-operator-test-e2e
 DEV_CLUSTER_CTX := kind-$(KIND_CLUSTER)
 
-# Install latest kubevirt release so we can install datavolumes
-export RELEASE=$$(curl -s https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt); \
-kubectl --context=$(DEV_CLUSTER_CTX)  apply -f https://github.com/kubevirt/kubevirt/releases/download/$${RELEASE}/kubevirt-operator.yaml; \
-kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://github.com/kubevirt/kubevirt/releases/download/$${RELEASE}/kubevirt-cr.yaml
-kubectl --context=$(DEV_CLUSTER_CTX) -n kubevirt wait kv kubevirt --for condition=Available --timeout=10m
-# Install the datavolumes CDI
-export VERSION=$$(curl -s https://api.github.com/repos/kubevirt/containerized-data-importer/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'); \
-kubectl --context=$(DEV_CLUSTER_CTX) create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$${VERSION}/cdi-operator.yaml; \
-kubectl --context=$(DEV_CLUSTER_CTX) create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$${VERSION}/cdi-cr.yaml
-# Install volumesnapshot
-kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 
 .PHONY: setup-test-e2e
 setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
@@ -89,6 +78,23 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 		exit 1; \
 	}
 	$(KIND) create cluster --name $(KIND_CLUSTER)
+	$(MAKE) install-cluster-deps
+
+.PHONY: install-cluster-deps
+install-cluster-deps:
+	# Install latest kubevirt release so we can install datavolumes
+	RELEASE=$$(curl -s https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt); \
+	kubectl --context=$(DEV_CLUSTER_CTX)  apply -f https://github.com/kubevirt/kubevirt/releases/download/$${RELEASE}/kubevirt-operator.yaml; \
+	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://github.com/kubevirt/kubevirt/releases/download/$${RELEASE}/kubevirt-cr.yaml
+	kubectl --context=$(DEV_CLUSTER_CTX) -n kubevirt wait kv kubevirt --for condition=Available --timeout=10m
+	# Install the datavolumes CDI
+	VERSION=$$(curl -s https://api.github.com/repos/kubevirt/containerized-data-importer/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'); \
+	kubectl --context=$(DEV_CLUSTER_CTX) create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$${VERSION}/cdi-operator.yaml; \
+	kubectl --context=$(DEV_CLUSTER_CTX) create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$${VERSION}/cdi-cr.yaml
+	# Install volumesnapshot
+	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 
 .PHONY: test-e2e
 test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
