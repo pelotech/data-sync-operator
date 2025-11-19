@@ -30,7 +30,6 @@ type Service struct {
 	client.Client
 	Recorder         record.EventRecorder
 	ResourceManager  resourcemanagerservice.VMDIResourceManager
-	ConcurrencyLimit int
 	RetryLimit       int
 	RetryBackoff     time.Duration
 	SyncLimit        int
