@@ -58,9 +58,6 @@ type VMDiskImageSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name"`
-
 	// +kubebuilder:validation:required
 	// +kubebuilder:validation:minlength=1
 	SecretRef string `json:"secretRef"`

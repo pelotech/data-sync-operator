@@ -39,7 +39,7 @@ func createDataVolume(vmdi *crdv1.VMDiskImage) (*cdiv1beta1.DataVolume, error) {
 	ownerReferences := createOwnerReferences(vmdi)
 
 	meta := metav1.ObjectMeta{
-		Name:            vmdi.Spec.Name,
+		Name:            vmdi.Name,
 		Namespace:       vmdi.Namespace,
 		Labels:          withOperatorLabels(vmdi.Labels, vmdi.Name),
 		OwnerReferences: ownerReferences,
@@ -116,7 +116,7 @@ func createVolumeSnapshot(vmdi *crdv1.VMDiskImage) *snapshotv1.VolumeSnapshot {
 	ownerReferences := createOwnerReferences(vmdi)
 
 	meta := metav1.ObjectMeta{
-		Name:            vmdi.Spec.Name,
+		Name:            vmdi.Name,
 		Namespace:       vmdi.Namespace,
 		Labels:          withOperatorLabels(vmdi.Labels, vmdi.Name),
 		OwnerReferences: ownerReferences,
@@ -124,7 +124,7 @@ func createVolumeSnapshot(vmdi *crdv1.VMDiskImage) *snapshotv1.VolumeSnapshot {
 
 	spec := snapshotv1.VolumeSnapshotSpec{
 		Source: snapshotv1.VolumeSnapshotSource{
-			PersistentVolumeClaimName: &vmdi.Spec.Name,
+			PersistentVolumeClaimName: &vmdi.Name,
 		},
 	}
 

@@ -59,9 +59,6 @@ spec:
                   "500Mi".
                 pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                 type: string
-              name:
-                minLength: 1
-                type: string
               secretRef:
                 type: string
               snapshotClass:
@@ -82,7 +79,6 @@ spec:
                 type: string
             required:
             - diskSize
-            - name
             - secretRef
             - sourceType
             type: object

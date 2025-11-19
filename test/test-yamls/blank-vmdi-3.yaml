@@ -4,7 +4,6 @@ metadata:
   name: blank-vmdi-3
   namespace: default
 spec:
-  name: "blank-disk-3"
   secretRef: "secret-3"
   sourceType: blank
   diskSize: "1Mi"
