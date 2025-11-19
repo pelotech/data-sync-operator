@@ -1,0 +1,11 @@
+apiVersion: crd.pelotech.ot/v1
+kind: VMDiskImage
+metadata:
+  name: blank-vmdi-5
+  namespace: default
+spec:
+  name: "blank-disk-5"
+  secretRef: "secret-5"
+  sourceType: blank
+  diskSize: "1Mi"
+  snapshotClass: "daily-snapshots"
