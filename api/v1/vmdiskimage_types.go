@@ -66,9 +66,11 @@ type VMDiskImageSpec struct {
 	SecretRef string `json:"secretRef"`
 
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:default="not-provided"
+	// +optional
 	URL string `json:"url"`
 
-	// +kubebuilder:validation:Enum=s3;registry
+	// +kubebuilder:validation:Enum=s3;registry;blank
 	SourceType string `json:"sourceType"`
 
 	// DiskSize specifies the size of the disk, e.g., "10Gi", "500Mi".
@@ -116,12 +118,10 @@ type VMDiskImage struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=vmdiskimages,scope=Namespaced,shortName=vmdi,singular=vmdiskimage
+// +kubebuilder:resource:path=vmdiskimages,scope=Namespaced,singular=vmdiskimage
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="The current phase of the VMDiskImage."
 // +kubebuilder:printcolumn:name="Resource Name",type="string",JSONPath=".spec.name",description="The name of the resource we are syncing."
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-
-// VMDiskImageList contains a list of VMDiskImage.
 type VMDiskImageList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -57,10 +57,12 @@ spec:
                 enum:
                 - s3
                 - registry
+                - blank
                 type: string
               storageClass:
                 type: string
               url:
+                default: not-provided
                 minLength: 1
                 type: string
             required:
@@ -68,7 +70,6 @@ spec:
             - name
             - secretRef
             - sourceType
-            - url
             type: object
           status:
             description: VMDiskImageStatus defines the observed state of VMDiskImage.
