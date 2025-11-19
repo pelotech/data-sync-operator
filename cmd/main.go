@@ -67,7 +67,7 @@ func main() {
 
 	var tlsOpts []func(*tls.Config)
 
-	opts := coreconfig.LoadLoggerOptionsFromEnv()
+	opts := coreconfig.LoadLoggerOptionsFromEnv(coreCfg.DevMode, coreCfg.LogLevel)
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
@@ -187,7 +187,7 @@ func main() {
 	if err := (&vmdiskimagectrl.VMDiskImageReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, coreCfg); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VMDiskImage")
 		os.Exit(1)
 	}
