@@ -76,14 +76,19 @@ func createDataVolume(vmdi *crdv1.VMDiskImage) (*cdiv1beta1.DataVolume, error) {
 
 	var source *cdiv1beta1.DataVolumeSource
 
-	if vmdi.Spec.SourceType == "s3" {
+	switch vmdi.Spec.SourceType {
+	case "s3":
 		source = &cdiv1beta1.DataVolumeSource{
 			S3: &cdiv1beta1.DataVolumeSourceS3{
 				URL:       vmdi.Spec.URL,
 				SecretRef: vmdi.Spec.SecretRef,
 			},
 		}
-	} else {
+	case "blank":
+		source = &cdiv1beta1.DataVolumeSource{
+			Blank: &cdiv1beta1.DataVolumeBlankImage{},
+		}
+	default:
 		if vmdi.Spec.CertConfigMap == nil {
 			errMsg := "attempted to create a datavolume without a registry but no certConfigMap was provided"
 			return nil, errors.New(errMsg)
