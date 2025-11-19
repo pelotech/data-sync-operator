@@ -70,6 +70,7 @@ type VMDiskImageSpec struct {
 	// +optional
 	URL string `json:"url"`
 
+	// NOTE: The "blank" type isn't used yet in production but is useful locally. This can be removed if we want
 	// +kubebuilder:validation:Enum=s3;registry;blank
 	SourceType string `json:"sourceType"`
 

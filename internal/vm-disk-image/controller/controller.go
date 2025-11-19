@@ -140,6 +140,7 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager, devMode bool)
 		SyncLimit:    config.Concurrency,
 	}
 
+	// TODO: Add this in when we have the local dev story handled
 	// if devMode {
 	// 	service = vmdiservice.LocalVMDIService{
 	// 		VMDiskImageService: service,
