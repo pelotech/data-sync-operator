@@ -28,11 +28,11 @@ type VMDiskImageService interface {
 
 type Service struct {
 	client.Client
-	Recorder         record.EventRecorder
-	ResourceManager  resourcemanagerservice.VMDIResourceManager
-	RetryLimit       int
-	RetryBackoff     time.Duration
-	SyncLimit        int
+	Recorder        record.EventRecorder
+	ResourceManager resourcemanagerservice.VMDIResourceManager
+	RetryLimit      int
+	RetryBackoff    time.Duration
+	SyncLimit       int
 }
 
 func (s Service) ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error) {
