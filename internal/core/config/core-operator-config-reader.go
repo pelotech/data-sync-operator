@@ -25,6 +25,8 @@ type CoreConfig struct {
 	ProbeAddr            string
 	SecureMetrics        bool
 	EnableHTTP2          bool
+	DevMode              bool
+	LogLevel             string
 }
 
 // LoadCoreConfigFromEnv reads the configuration from environment variables.
@@ -33,6 +35,9 @@ func LoadCoreConfigFromEnv() CoreConfig {
 	cfg := CoreConfig{}
 
 	// --- General Configuration ---
+
+	// LOG_LEVEL: The log level for the application. Default: false
+	cfg.LogLevel = GetStringEnvOrDefault("LOG_LEVEL", "info")
 
 	// METRICS_BIND_ADDRESS: The address the metrics endpoint binds to.  Default: "0"
 	// Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service
@@ -49,6 +54,10 @@ func LoadCoreConfigFromEnv() CoreConfig {
 
 	// ENABLE_HTTP2: If set, HTTP/2 will be enabled for the metrics and webhook servers. Default: false
 	cfg.EnableHTTP2 = GetBoolEnvOrDefault("ENABLE_HTTP2", false)
+
+	// DEV_MODE: If set, the operator will run in development mode. Default: false
+	// TODO: SET THIS BACK TO FALSE
+	cfg.DevMode = GetBoolEnvOrDefault("DEV_MODE", true)
 
 	// --- Webhook Configuration ---
 
@@ -76,13 +85,10 @@ func LoadCoreConfigFromEnv() CoreConfig {
 }
 
 // LogLevelOptions maps the KubeBuilder flag to an environment variable.
-func LoadLoggerOptionsFromEnv() zap.Options {
-
-	// Default to "debug" if the environment variable is not set
-	logLevel := GetStringEnvOrDefault("LOG_LEVEL", "debug")
+func LoadLoggerOptionsFromEnv(isDevMode bool, logLevel string) zap.Options {
 
 	opts := zap.Options{}
-	opts.Development = false // Default to production mode
+	opts.Development = isDevMode
 
 	// Map the environment variable string to the core zapcore.Level
 	switch strings.ToLower(logLevel) {
