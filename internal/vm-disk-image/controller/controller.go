@@ -113,7 +113,7 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // SetupWithManager sets up the controller with the Manager.
 // By convention in kubebuilder this is where we are going to setup anything
 // the controller requires
-func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager, devMode bool) error {
+func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	logger := mgr.GetLogger()
 
 	config := vmdiconfig.LoadVMDIControllerConfigFromEnv()
@@ -139,13 +139,6 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager, devMode bool)
 		RetryBackoff: config.RetryBackoffDuration,
 		SyncLimit:    config.Concurrency,
 	}
-
-	// TODO: Add this in when we have the local dev story handled
-	// if devMode {
-	// 	service = vmdiservice.LocalVMDIService{
-	// 		VMDiskImageService: service,
-	// 	}
-	// }
 
 	reconciler := &VMDiskImageReconciler{
 		Client:                  client,
