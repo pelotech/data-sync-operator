@@ -67,6 +67,8 @@ spec:
               snapshotClass:
                 type: string
               sourceType:
+                description: 'NOTE: The "blank" type isn''t used yet in production
+                  but is useful locally. This can be removed if we want'
                 enum:
                 - s3
                 - registry
