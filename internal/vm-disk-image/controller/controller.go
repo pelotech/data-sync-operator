@@ -61,6 +61,8 @@ type VMDiskImageReconciler struct {
 func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 
+	logger.Info("vmdi reconcile loop running")
+
 	var VMDiskImage crdv1.VMDiskImage
 
 	err := r.Get(ctx, req.NamespacedName, &VMDiskImage)
@@ -75,15 +77,19 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	resourceMarkedForDeletion := VMDiskImage.GetDeletionTimestamp().IsZero()
+	resourceMarkedForDeletion := !VMDiskImage.GetDeletionTimestamp().IsZero()
+
+	logger.Info("Checking if is marked for deletion")
 
 	if resourceMarkedForDeletion {
+		logger.Info("Marked for delete...done")
 		return r.VMDiskImageService.DeleteResource(ctx, &VMDiskImage)
 	}
 
 	resourceHasFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
 
 	if resourceHasFinalizer {
+		logger.Info("Adding finalizer")
 		crutils.AddFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
 
 		err := r.Update(ctx, &VMDiskImage)
@@ -99,12 +105,16 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	switch currentPhase {
 	case "":
+		logger.Info("QueueResourceCreation")
 		return r.QueueResourceCreation(ctx, &VMDiskImage)
 	case crdv1.VMDiskImagePhaseQueued:
+		logger.Info("AttemptSyncingOfResource")
 		return r.AttemptSyncingOfResource(ctx, &VMDiskImage)
 	case crdv1.VMDiskImagePhaseSyncing:
+		logger.Info("TransitonFromSyncing")
 		return r.TransitonFromSyncing(ctx, &VMDiskImage)
 	case crdv1.VMDiskImagePhaseCompleted, crdv1.VMDiskImagePhaseFailed:
+		logger.Info("Terminal")
 		return ctrl.Result{}, nil
 	default:
 		logger.Error(nil, "Unknown phase detected", "Phase", currentPhase)
@@ -133,19 +143,19 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager, devMode bool)
 	var service vmdiservice.VMDiskImageService
 
 	service = vmdiservice.Service{
-		Client:           client,
-		Recorder:         mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
-		ResourceManager:  resourceManager,
-		ConcurrencyLimit: config.Concurrency,
-		RetryLimit:       config.RetryLimit,
-		RetryBackoff:     config.RetryBackoffDuration,
+		Client:          client,
+		Recorder:        mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
+		ResourceManager: resourceManager,
+		RetryLimit:      config.RetryLimit,
+		RetryBackoff:    config.RetryBackoffDuration,
+		SyncLimit:       config.Concurrency,
 	}
 
-	if devMode {
-		service = vmdiservice.LocalVMDIService{
-			VMDiskImageService: service,
-		}
-	}
+	// if devMode {
+	// 	service = vmdiservice.LocalVMDIService{
+	// 		VMDiskImageService: service,
+	// 	}
+	// }
 
 	reconciler := &VMDiskImageReconciler{
 		Client:             client,
