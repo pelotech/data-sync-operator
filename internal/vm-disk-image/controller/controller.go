@@ -61,9 +61,9 @@ type VMDiskImageReconciler struct {
 func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 
-	var dataSync crdv1.VMDiskImage
+	var VMDiskImage crdv1.VMDiskImage
 
-	err := r.Get(ctx, req.NamespacedName, &dataSync)
+	err := r.Get(ctx, req.NamespacedName, &VMDiskImage)
 
 	if err != nil && errors.IsNotFound(err) {
 		logger.Info("Resource has been deleted.")
@@ -75,33 +75,35 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	// We don't have our finalizer and haven't been deleted
-	if dataSync.GetDeletionTimestamp().IsZero() && !crutils.ContainsFinalizer(&dataSync, crdv1.VMDiskImageFinalizer) {
-		crutils.AddFinalizer(&dataSync, crdv1.VMDiskImageFinalizer)
+	resourceMarkedForDeletion := VMDiskImage.GetDeletionTimestamp().IsZero()
 
-		err := r.Update(ctx, &dataSync)
+	if resourceMarkedForDeletion {
+		return r.VMDiskImageService.DeleteResource(ctx, &VMDiskImage)
+	}
+
+	resourceHasFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
+
+	if resourceHasFinalizer {
+		crutils.AddFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
+
+		err := r.Update(ctx, &VMDiskImage)
 
 		if err != nil {
-			return r.HandleResourceUpdateError(ctx, &dataSync, err, "Failed to add finalizer to our resource")
+			return r.HandleResourceUpdateError(ctx, &VMDiskImage, err, "Failed to add finalizer to our resource")
 		}
 
 	}
 
-	// We have been deleted with our finalizer
-	if !dataSync.GetDeletionTimestamp().IsZero() {
-		return r.VMDiskImageService.DeleteResource(ctx, &dataSync)
-	}
-
-	currentPhase := dataSync.Status.Phase
-	logger.Info("Reconciling VMDiskImage", "Phase", currentPhase, "Name", dataSync.Name)
+	currentPhase := VMDiskImage.Status.Phase
+	logger.Info("Reconciling VMDiskImage", "Phase", currentPhase, "Name", VMDiskImage.Name)
 
 	switch currentPhase {
 	case "":
-		return r.QueueResourceCreation(ctx, &dataSync)
+		return r.QueueResourceCreation(ctx, &VMDiskImage)
 	case crdv1.VMDiskImagePhaseQueued:
-		return r.AttemptSyncingOfResource(ctx, &dataSync)
+		return r.AttemptSyncingOfResource(ctx, &VMDiskImage)
 	case crdv1.VMDiskImagePhaseSyncing:
-		return r.TransitonFromSyncing(ctx, &dataSync)
+		return r.TransitonFromSyncing(ctx, &VMDiskImage)
 	case crdv1.VMDiskImagePhaseCompleted, crdv1.VMDiskImagePhaseFailed:
 		return ctrl.Result{}, nil
 	default:
@@ -114,13 +116,7 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // By convention in kubebuilder this is where we are going to setup anything
 // the controller requires
 func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
-	// Index resources by phase since we have to query these quite a bit
-	err := mgr.GetFieldIndexer().IndexField(context.Background(), &crdv1.VMDiskImage{}, ".status.phase", r.IndexVMDiskImageByPhase)
-
-	if err != nil {
-		return err
-	}
+	logger := mgr.GetLogger()
 
 	config := vmdiconfig.LoadVMDIControllerConfigFromEnv()
 
@@ -137,7 +133,7 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	service := vmdiservice.Service{
 		Client:           client,
-		Recorder:         mgr.GetEventRecorderFor("vmdi-controller"),
+		Recorder:         mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
 		ResourceManager:  resourceManager,
 		ConcurrencyLimit: config.Concurrency,
 		RetryLimit:       config.RetryLimit,
@@ -148,6 +144,14 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Client:             client,
 		Scheme:             mgr.GetScheme(),
 		VMDiskImageService: service,
+	}
+
+	// Index resources by phase since we have to query these quite a bit
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &crdv1.VMDiskImage{}, ".status.phase", reconciler.IndexVMDiskImageByPhase)
+
+	if err != nil {
+		logger.Error(err, "Failed to created indexer")
+		return err
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
