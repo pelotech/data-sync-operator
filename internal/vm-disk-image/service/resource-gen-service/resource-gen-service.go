@@ -17,7 +17,7 @@ type VMDIResourceGenerator interface {
 	CreateStorageManifests(vmdi *crdv1.VMDiskImage) (*snapshotv1.VolumeSnapshot, *cdiv1beta1.DataVolume, error)
 }
 
-type Generator struct {}
+type Generator struct{}
 
 func (g *Generator) CreateStorageManifests(
 	vmdi *crdv1.VMDiskImage,

@@ -145,8 +145,8 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	reconciler := &VMDiskImageReconciler{
-		Client: client,
-		Scheme: mgr.GetScheme(),
+		Client:             client,
+		Scheme:             mgr.GetScheme(),
 		VMDiskImageService: service,
 	}
 
