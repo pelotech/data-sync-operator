@@ -79,6 +79,7 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 	}
 	$(KIND) create cluster --name $(KIND_CLUSTER)
 	$(MAKE) install-cluster-deps
+	$(MAKE) install
 
 .PHONY: install-cluster-deps
 install-cluster-deps:
