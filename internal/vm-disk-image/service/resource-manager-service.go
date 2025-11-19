@@ -1,4 +1,4 @@
-package resourcemanagerservice
+package service
 
 import (
 	"context"
@@ -9,23 +9,22 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	crdv1 "pelotech/data-sync-operator/api/v1"
-	resourcegenservice "pelotech/data-sync-operator/internal/vm-disk-image/service/resource-gen-service"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-type VMDIResourceManager interface {
+type VMDiskImageProvisioner interface {
 	CreateResources(ctx context.Context, resource *crdv1.VMDiskImage) error
 	TearDownAllResources(ctx context.Context, resource *crdv1.VMDiskImage) error
 	ResourcesAreReady(ctx context.Context, resource *crdv1.VMDiskImage) (bool, error)
 	ResourcesHaveErrors(ctx context.Context, resource *crdv1.VMDiskImage) error
 }
 
-type Manager struct {
+type K8sVMDIProvisioner struct {
 	K8sClient         client.Client
-	ResourceGenerator resourcegenservice.VMDIResourceGenerator
+	ResourceGenerator VMDIResourceGenerator
 	MaxSyncDuration   time.Duration
 	RetryLimit        int
 }
@@ -34,23 +33,23 @@ const dataVolumeDonePhase = "Succeeded"
 
 // Create resources for a given VMDiskImage. Stops creating them if
 // a single resource fails to create. Does not cleanup after itself
-func (m Manager) CreateResources(
+func (p K8sVMDIProvisioner) CreateResources(
 	ctx context.Context,
 	vmdi *crdv1.VMDiskImage,
 ) error {
-	vs, dv, err := m.ResourceGenerator.CreateStorageManifests(vmdi)
+	vs, dv, err := p.ResourceGenerator.CreateStorageManifests(vmdi)
 
 	if err != nil {
 		return err
 	}
 
-	err = m.K8sClient.Patch(ctx, dv, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
+	err = p.K8sClient.Patch(ctx, dv, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
 
 	if err != nil {
 		return err
 	}
 
-	err = m.K8sClient.Patch(ctx, vs, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
+	err = p.K8sClient.Patch(ctx, vs, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
 
 	if err != nil {
 		return err
@@ -60,14 +59,14 @@ func (m Manager) CreateResources(
 }
 
 // Tear down the resources associated with a given VMDiskImage.
-func (m Manager) TearDownAllResources(
+func (p K8sVMDIProvisioner) TearDownAllResources(
 	ctx context.Context,
 	ds *crdv1.VMDiskImage,
 ) error {
 	deleteByLabels := getLabelsToMatch(ds)
 
 	// First we tear down the PVCs that back the data volumes
-	err := m.K8sClient.DeleteAllOf(
+	err := p.K8sClient.DeleteAllOf(
 		ctx,
 		&corev1.PersistentVolumeClaim{},
 		client.InNamespace(ds.Namespace),
@@ -79,7 +78,7 @@ func (m Manager) TearDownAllResources(
 	}
 
 	// Next the Datavolumes
-	err = m.K8sClient.DeleteAllOf(
+	err = p.K8sClient.DeleteAllOf(
 		ctx,
 		&cdiv1beta1.DataVolume{},
 		client.InNamespace(ds.Namespace),
@@ -91,7 +90,7 @@ func (m Manager) TearDownAllResources(
 	}
 
 	// Finally the volumesnapshots
-	err = m.K8sClient.DeleteAllOf(
+	err = p.K8sClient.DeleteAllOf(
 		ctx,
 		&snapshotv1.VolumeSnapshot{},
 		client.InNamespace(ds.Namespace),
@@ -105,7 +104,7 @@ func (m Manager) TearDownAllResources(
 	// If we have a finalizer remove it.
 	if crutils.ContainsFinalizer(ds, crdv1.VMDiskImageFinalizer) {
 		crutils.RemoveFinalizer(ds, crdv1.VMDiskImageFinalizer)
-		if err := m.K8sClient.Update(ctx, ds); err != nil {
+		if err := p.K8sClient.Update(ctx, ds); err != nil {
 			return err
 		}
 	}
@@ -116,12 +115,12 @@ func (m Manager) TearDownAllResources(
 // This function will check if the datavolumes assoicated with our VMDiskImage
 // are ready. Currently we only check if the datavolumes are done syncing in our
 // manual process. We do not check if any of the other resources are ready.
-func (m Manager) ResourcesAreReady(
+func (p K8sVMDIProvisioner) ResourcesAreReady(
 	ctx context.Context,
-	ds *crdv1.VMDiskImage,
+	vmdi *crdv1.VMDiskImage,
 ) (bool, error) {
 
-	searchLabels := getLabelsToMatch(ds)
+	searchLabels := getLabelsToMatch(vmdi)
 
 	listOps := []client.ListOption{
 		searchLabels,
@@ -129,8 +128,8 @@ func (m Manager) ResourcesAreReady(
 
 	dataVolumeList := &cdiv1beta1.DataVolumeList{}
 
-	if err := m.K8sClient.List(ctx, dataVolumeList, listOps...); err != nil {
-		return false, fmt.Errorf("failed to list data volumes with the vm disk image %s: %w", ds.Name, err)
+	if err := p.K8sClient.List(ctx, dataVolumeList, listOps...); err != nil {
+		return false, fmt.Errorf("failed to list data volumes with the vm disk image %s: %w", vmdi.Name, err)
 	}
 
 	dataVolumesReady := true
@@ -147,7 +146,7 @@ func (m Manager) ResourcesAreReady(
 
 // Check if our resources have errors that would require us to
 // scuttle the sync.
-func (m Manager) ResourcesHaveErrors(
+func (p K8sVMDIProvisioner) ResourcesHaveErrors(
 	ctx context.Context,
 	ds *crdv1.VMDiskImage,
 ) error {
@@ -168,7 +167,7 @@ func (m Manager) ResourcesHaveErrors(
 
 	timeSyncing := now.Sub(syncStartTime)
 
-	if timeSyncing > m.MaxSyncDuration {
+	if timeSyncing > p.MaxSyncDuration {
 		return fmt.Errorf("the VMDiskImage %s has been syncing longer than the allowed sync time.", ds.Name)
 	}
 
@@ -180,12 +179,12 @@ func (m Manager) ResourcesHaveErrors(
 
 	dataVolumeList := &cdiv1beta1.DataVolumeList{}
 
-	if err := m.K8sClient.List(ctx, dataVolumeList, listOps...); err != nil {
+	if err := p.K8sClient.List(ctx, dataVolumeList, listOps...); err != nil {
 		return fmt.Errorf("failed to list datavolumes with the VMDiskImage %s: %w", ds.Name, err)
 	}
 
 	for _, dv := range dataVolumeList.Items {
-		if dv.Status.RestartCount >= int32(m.RetryLimit) {
+		if dv.Status.RestartCount >= int32(p.RetryLimit) {
 			return fmt.Errorf("a datavolume has restarted more than the max for a sync.")
 		}
 	}
@@ -193,9 +192,9 @@ func (m Manager) ResourcesHaveErrors(
 	return nil
 }
 
-func getLabelsToMatch(ds *crdv1.VMDiskImage) client.MatchingLabels {
+func getLabelsToMatch(vmdi *crdv1.VMDiskImage) client.MatchingLabels {
 	labelsToMatch := map[string]string{
-		crdv1.VMDiskImageOwnerLabel: ds.Name,
+		crdv1.VMDiskImageOwnerLabel: vmdi.Name,
 	}
 
 	return client.MatchingLabels(labelsToMatch)

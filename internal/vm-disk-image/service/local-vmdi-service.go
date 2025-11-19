@@ -1,4 +1,4 @@
-package vmdiservice
+package service
 
 import (
 	"context"
@@ -13,15 +13,15 @@ import (
 // When running locally we can just allocate empty disks so this will ensure that
 // we still get some sync failures but it will let us know that they are correct.
 // This is to test the error handling component of the application
-type LocalVMDIService struct {
-	VMDiskImageService
+type LocalVMDIOrchestrator struct {
+	VMDiskImageOrchestrator
 }
 
-func (s LocalVMDIService) AttemptSyncingOfResource(
+func (o LocalVMDIOrchestrator) AttemptSyncingOfResource(
 	ctx context.Context,
 	vmdi *crdv1.VMDiskImage,
 ) (ctrl.Result, error) {
-	res, err := s.AttemptSyncingOfResource(ctx, vmdi)
+	res, err := o.AttemptSyncingOfResource(ctx, vmdi)
 	// Generate a random number between 1 and 10 (inclusive).
 	// rand.Intn(10) generates a number in the range [0, 9].
 	// Adding 1 shifts the range to [1, 10].
@@ -33,7 +33,7 @@ func (s LocalVMDIService) AttemptSyncingOfResource(
 
 	// Check if the number is greater than 5.
 	if randomNumber > 5 {
-		return s.HandleSyncError(ctx, vmdi, errors.New("forced error"), "Forced")
+		return o.HandleSyncError(ctx, vmdi, errors.New("forced error"), "Forced")
 	} else {
 		return res, err
 	}

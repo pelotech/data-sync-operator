@@ -1,9 +1,8 @@
-package vmdiservice
+package service
 
 import (
 	"context"
 	crdv1 "pelotech/data-sync-operator/api/v1"
-	resourcemanagerservice "pelotech/data-sync-operator/internal/vm-disk-image/service/resource-manager-service"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +14,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type VMDiskImageService interface {
+type VMDiskImageOrchestrator interface {
 	IndexVMDiskImageByPhase(rawObj client.Object) []string
 	ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error)
 	QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
@@ -26,30 +25,30 @@ type VMDiskImageService interface {
 	HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error, message string) (ctrl.Result, error)
 }
 
-type Service struct {
+type Orchestrator struct {
 	client.Client
-	Recorder        record.EventRecorder
-	ResourceManager resourcemanagerservice.VMDIResourceManager
-	RetryLimit      int
-	RetryBackoff    time.Duration
-	SyncLimit       int
+	Recorder     record.EventRecorder
+	Provisioner  VMDiskImageProvisioner
+	RetryLimit   int
+	RetryBackoff time.Duration
+	SyncLimit    int
 }
 
-func (s Service) ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error) {
+func (o Orchestrator) ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error) {
 	list := &crdv1.VMDiskImageList{}
 
 	listOpts := []client.ListOption{
 		client.MatchingFields{".status.phase": phase},
 	}
 
-	if err := s.Client.List(ctx, list, listOpts...); err != nil {
+	if err := o.Client.List(ctx, list, listOpts...); err != nil {
 		return nil, err
 	}
 
 	return list, nil
 }
 
-func (s Service) IndexVMDiskImageByPhase(rawObj client.Object) []string {
+func (o Orchestrator) IndexVMDiskImageByPhase(rawObj client.Object) []string {
 	vmdi, ok := rawObj.(*crdv1.VMDiskImage)
 
 	if !ok {
@@ -63,7 +62,7 @@ func (s Service) IndexVMDiskImageByPhase(rawObj client.Object) []string {
 	return []string{vmdi.Status.Phase}
 }
 
-func (s Service) QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
+func (o Orchestrator) QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseQueued
 	vmdi.Status.Message = "Request is waiting for an available worker."
 
@@ -73,38 +72,38 @@ func (s Service) QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskIm
 		Message: "The sync has been queued for processing.",
 	})
 
-	if err := s.Status().Update(ctx, vmdi); err != nil {
-		return s.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Queued")
+	if err := o.Status().Update(ctx, vmdi); err != nil {
+		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Queued")
 	}
 
-	s.Recorder.Eventf(vmdi, "Normal", "Queued", "Resource successfully queued for sync orchestration")
+	o.Recorder.Eventf(vmdi, "Normal", "Queued", "Resource successfully queued for sync orchestration")
 
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (s Service) AttemptSyncingOfResource(
+func (o Orchestrator) AttemptSyncingOfResource(
 	ctx context.Context,
 	vmdi *crdv1.VMDiskImage,
 ) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 
-	syncingList, err := s.ListVMDiskImagesByPhase(ctx, crdv1.VMDiskImagePhaseSyncing)
+	syncingList, err := o.ListVMDiskImagesByPhase(ctx, crdv1.VMDiskImagePhaseSyncing)
 
 	if err != nil {
 		logger.Error(err, "Failed to list syncing resources")
 		return ctrl.Result{}, err
 	}
 
-	if len(syncingList.Items) >= s.SyncLimit {
-		s.Recorder.Eventf(vmdi, "Normal", "WaitingToSync", "No more than %d VMDiskImages can be syncing at once. Waiting...", s.SyncLimit)
-		return ctrl.Result{RequeueAfter: s.RetryBackoff}, nil
+	if len(syncingList.Items) >= o.SyncLimit {
+		o.Recorder.Eventf(vmdi, "Normal", "WaitingToSync", "No more than %d VMDiskImages can be syncing at once. Waiting...", o.SyncLimit)
+		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
 	}
 
-	err = s.ResourceManager.CreateResources(ctx, vmdi)
+	err = o.Provisioner.CreateResources(ctx, vmdi)
 
 	if err != nil {
-		s.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources: "+err.Error())
-		return s.HandleResourceCreationError(ctx, vmdi, err)
+		o.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources: "+err.Error())
+		return o.HandleResourceCreationError(ctx, vmdi, err)
 	}
 
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseSyncing
@@ -116,8 +115,8 @@ func (s Service) AttemptSyncingOfResource(
 		Message: "The sync is currently in progress.",
 	})
 
-	if err := s.Status().Update(ctx, vmdi); err != nil {
-		return s.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Syncing")
+	if err := o.Status().Update(ctx, vmdi); err != nil {
+		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Syncing")
 	}
 
 	orginalDs := vmdi.DeepCopy()
@@ -126,28 +125,28 @@ func (s Service) AttemptSyncingOfResource(
 
 	vmdi.Annotations[crdv1.SyncStartTimeAnnotation] = now
 
-	if err := s.Client.Patch(ctx, vmdi, client.MergeFrom(orginalDs)); err != nil {
-		return s.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update sync start time")
+	if err := o.Client.Patch(ctx, vmdi, client.MergeFrom(orginalDs)); err != nil {
+		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update sync start time")
 	}
 
-	s.Recorder.Eventf(vmdi, "Normal", "SyncStarted", "Resource sync has started")
+	o.Recorder.Eventf(vmdi, "Normal", "SyncStarted", "Resource sync has started")
 
 	return ctrl.Result{}, nil
 }
 
-func (s Service) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
+func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 
 	// Check if there is an error occurring in the sync
-	syncError := s.ResourceManager.ResourcesHaveErrors(ctx, vmdi)
+	syncError := o.Provisioner.ResourcesHaveErrors(ctx, vmdi)
 
 	if syncError != nil {
 		logger.Error(syncError, "A sync error has occurred.")
-		return s.HandleSyncError(ctx, vmdi, syncError, "A error has occurred while syncing")
+		return o.HandleSyncError(ctx, vmdi, syncError, "A error has occurred while syncing")
 	}
 
 	// Check if the sync is done is not done
-	isDone, err := s.ResourceManager.ResourcesAreReady(ctx, vmdi)
+	isDone, err := o.Provisioner.ResourcesAreReady(ctx, vmdi)
 
 	if err != nil {
 		logger.Error(err, "Unable to verify if resource is ready or not.")
@@ -155,7 +154,7 @@ func (s Service) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDiskIma
 
 	if !isDone {
 		logger.Info("Sync is not complete. Requeueing.")
-		return ctrl.Result{RequeueAfter: s.RetryBackoff}, nil
+		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
 	}
 
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseCompleted
@@ -167,19 +166,19 @@ func (s Service) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDiskIma
 		Message: "The sync finished successfully.",
 	})
 
-	if err := s.Status().Update(ctx, vmdi); err != nil {
-		return s.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Completed")
+	if err := o.Status().Update(ctx, vmdi); err != nil {
+		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Completed")
 	}
 
-	s.Recorder.Eventf(vmdi, "Normal", "SyncCompleted", "Resource sync completed successfully")
+	o.Recorder.Eventf(vmdi, "Normal", "SyncCompleted", "Resource sync completed successfully")
 
 	return ctrl.Result{}, nil
 }
 
-func (s Service) DeleteResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
+func (o Orchestrator) DeleteResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 
-	err := s.ResourceManager.TearDownAllResources(ctx, vmdi)
+	err := o.Provisioner.TearDownAllResources(ctx, vmdi)
 
 	if err != nil {
 		logger.Error(err, "failed to cleanup child resources of VMDiskImage.")
@@ -188,7 +187,7 @@ func (s Service) DeleteResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (c
 	return ctrl.Result{}, nil
 }
 
-func (s Service) HandleResourceUpdateError(
+func (o Orchestrator) HandleResourceUpdateError(
 	ctx context.Context,
 	vmdi *crdv1.VMDiskImage,
 	originalErr error,
@@ -207,19 +206,19 @@ func (s Service) HandleResourceUpdateError(
 		Message: originalErr.Error(),
 	})
 
-	if err := s.Client.Status().Update(ctx, vmdi); err != nil {
+	if err := o.Client.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Could not update status to Failed after an initial update error")
 	}
 
 	return ctrl.Result{}, originalErr
 }
 
-func (s Service) HandleResourceCreationError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error) (ctrl.Result, error) {
+func (o Orchestrator) HandleResourceCreationError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 	logger.Info("Handling a reousrce creation failure")
 	logger.Error(originalErr, "Failed to create a resource when trying to intiate resource sync")
 
-	s.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources.")
+	o.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources.")
 
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseFailed
 	vmdi.Status.Message = "Failed while creating resources: " + originalErr.Error()
@@ -230,11 +229,11 @@ func (s Service) HandleResourceCreationError(ctx context.Context, vmdi *crdv1.VM
 		Message: originalErr.Error(),
 	})
 
-	if err := s.Client.Status().Update(ctx, vmdi); err != nil {
+	if err := o.Client.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Could not update status to Failed resource creation failure")
 	}
 
-	err := s.ResourceManager.TearDownAllResources(ctx, vmdi)
+	err := o.Provisioner.TearDownAllResources(ctx, vmdi)
 
 	if err != nil {
 		logger.Error(err, "Failed to teardown resources.")
@@ -243,23 +242,23 @@ func (s Service) HandleResourceCreationError(ctx context.Context, vmdi *crdv1.VM
 	return ctrl.Result{}, originalErr
 }
 
-func (s Service) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error, message string) (ctrl.Result, error) {
+func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error, message string) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 	logger.Error(originalErr, message)
 
-	s.Recorder.Eventf(vmdi, "Warning", "SyncErrorOccurred", originalErr.Error())
+	o.Recorder.Eventf(vmdi, "Warning", "SyncErrorOccurred", originalErr.Error())
 
 	vmdi.Status.FailureCount += 1
 
-	if err := s.Client.Status().Update(ctx, vmdi); err != nil {
+	if err := o.Client.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Failed to update resource failure count")
 	}
 
-	if vmdi.Status.FailureCount < s.RetryLimit {
-		return ctrl.Result{RequeueAfter: s.RetryBackoff}, nil
+	if vmdi.Status.FailureCount < o.RetryLimit {
+		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
 	}
 
-	s.Recorder.Eventf(vmdi, "Warning", "SyncExceededRetryCount", "The sync has failed beyond the set retry limit of %d", s.RetryLimit)
+	o.Recorder.Eventf(vmdi, "Warning", "SyncExceededRetryCount", "The sync has failed beyond the set retry limit of %d", o.RetryLimit)
 
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseFailed
 	vmdi.Status.Message = "An error occurred durng reconciliation: " + originalErr.Error()
@@ -270,11 +269,11 @@ func (s Service) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskImage, o
 		Message: originalErr.Error(),
 	})
 
-	if err := s.Client.Status().Update(ctx, vmdi); err != nil {
+	if err := o.Client.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Could not update status to Failed after an sync error")
 	}
 
-	err := s.ResourceManager.TearDownAllResources(ctx, vmdi)
+	err := o.Provisioner.TearDownAllResources(ctx, vmdi)
 
 	if err != nil {
 		logger.Error(err, "Failed to teardown resources.")

@@ -20,9 +20,7 @@ import (
 	"context"
 	crdv1 "pelotech/data-sync-operator/api/v1"
 	vmdiconfig "pelotech/data-sync-operator/internal/vm-disk-image/config"
-	resourcegenservice "pelotech/data-sync-operator/internal/vm-disk-image/service/resource-gen-service"
-	resourcemanagerservice "pelotech/data-sync-operator/internal/vm-disk-image/service/resource-manager-service"
-	vmdiservice "pelotech/data-sync-operator/internal/vm-disk-image/service/vmdi-service"
+	vmdi "pelotech/data-sync-operator/internal/vm-disk-image/service"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,7 +34,7 @@ import (
 type VMDiskImageReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	vmdiservice.VMDiskImageService
+	vmdi.VMDiskImageOrchestrator
 }
 
 // RBAC for our CRD
@@ -83,7 +81,7 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if resourceMarkedForDeletion {
 		logger.Info("Marked for delete...done")
-		return r.VMDiskImageService.DeleteResource(ctx, &VMDiskImage)
+		return r.VMDiskImageOrchestrator.DeleteResource(ctx, &VMDiskImage)
 	}
 
 	resourceHasFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
@@ -130,25 +128,26 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager, devMode bool)
 
 	config := vmdiconfig.LoadVMDIControllerConfigFromEnv()
 
-	resourceGenerator := &resourcegenservice.Generator{}
+	resourceGenerator := &vmdi.Generator{}
 
 	client := mgr.GetClient()
 
-	resourceManager := resourcemanagerservice.Manager{
+	vmdiProvisioner := vmdi.K8sVMDIProvisioner{
 		K8sClient:         client,
 		ResourceGenerator: resourceGenerator,
 		MaxSyncDuration:   config.MaxSyncDuration,
 		RetryLimit:        config.RetryLimit,
 	}
-	var service vmdiservice.VMDiskImageService
 
-	service = vmdiservice.Service{
-		Client:          client,
-		Recorder:        mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
-		ResourceManager: resourceManager,
-		RetryLimit:      config.RetryLimit,
-		RetryBackoff:    config.RetryBackoffDuration,
-		SyncLimit:       config.Concurrency,
+	var orchestrator vmdi.VMDiskImageOrchestrator
+
+	orchestrator = vmdi.Orchestrator{
+		Client:       client,
+		Recorder:     mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
+		Provisioner:  vmdiProvisioner,
+		RetryLimit:   config.RetryLimit,
+		RetryBackoff: config.RetryBackoffDuration,
+		SyncLimit:    config.Concurrency,
 	}
 
 	// if devMode {
@@ -158,9 +157,9 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager, devMode bool)
 	// }
 
 	reconciler := &VMDiskImageReconciler{
-		Client:             client,
-		Scheme:             mgr.GetScheme(),
-		VMDiskImageService: service,
+		Client:                  client,
+		Scheme:                  mgr.GetScheme(),
+		VMDiskImageOrchestrator: orchestrator,
 	}
 
 	// Index resources by phase since we have to query these quite a bit

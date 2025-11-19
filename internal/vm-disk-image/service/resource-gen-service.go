@@ -1,4 +1,4 @@
-package resourcegenservice
+package service
 
 import (
 	"errors"
@@ -36,15 +36,7 @@ func (g *Generator) CreateStorageManifests(
 }
 
 func createDataVolume(vmdi *crdv1.VMDiskImage) (*cdiv1beta1.DataVolume, error) {
-	ownerReferences := []metav1.OwnerReference{
-		{
-			APIVersion:         "v1",
-			BlockOwnerDeletion: ptr.To(true),
-			Kind:               "VMDiskImage",
-			Name:               vmdi.Name,
-			UID:                vmdi.UID,
-		},
-	}
+	ownerReferences := createOwnerReferences(vmdi)
 
 	meta := metav1.ObjectMeta{
 		Name:            vmdi.Spec.Name,
@@ -121,15 +113,7 @@ func createDataVolume(vmdi *crdv1.VMDiskImage) (*cdiv1beta1.DataVolume, error) {
 }
 
 func createVolumeSnapshot(vmdi *crdv1.VMDiskImage) *snapshotv1.VolumeSnapshot {
-	ownerReferences := []metav1.OwnerReference{
-		{
-			APIVersion:         "v1",
-			BlockOwnerDeletion: ptr.To(true),
-			Kind:               "VMDiskImage",
-			Name:               vmdi.Name,
-			UID:                vmdi.UID,
-		},
-	}
+	ownerReferences := createOwnerReferences(vmdi)
 
 	meta := metav1.ObjectMeta{
 		Name:            vmdi.Spec.Name,
@@ -158,6 +142,19 @@ func createVolumeSnapshot(vmdi *crdv1.VMDiskImage) *snapshotv1.VolumeSnapshot {
 	}
 }
 
+func createOwnerReferences(vmdi *crdv1.VMDiskImage) []metav1.OwnerReference {
+	return []metav1.OwnerReference{
+		{
+			APIVersion:         crdv1.GroupVersion.String(),
+			BlockOwnerDeletion: ptr.To(true),
+			Kind:               "VMDiskImage",
+			Name:               vmdi.Name,
+			UID:                vmdi.UID,
+			Controller:         ptr.To(true),
+		},
+	}
+}
+
 // Give our created resources a new map of labels
 func withOperatorLabels(labels map[string]string, ownerName string) map[string]string {
 	// 1. Create a brand new map
@@ -170,5 +167,5 @@ func withOperatorLabels(labels map[string]string, ownerName string) map[string]s
 
 	newLabels[crdv1.VMDiskImageOwnerLabel] = ownerName
 
-	return labels
+	return newLabels
 }
