@@ -129,9 +129,7 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		RetryLimit:        config.RetryLimit,
 	}
 
-	var orchestrator vmdi.VMDiskImageOrchestrator
-
-	orchestrator = vmdi.Orchestrator{
+	orchestrator := vmdi.Orchestrator{
 		Client:       client,
 		Recorder:     mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
 		Provisioner:  vmdiProvisioner,
