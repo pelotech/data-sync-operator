@@ -8,9 +8,9 @@ manager:
     pullPolicy: IfNotPresent
     # A list of secrets to use for pulling images
     # Example:
-    # pullSecrets:
+    # imagePullSecrets:
     #   - name: my-registry-secret
-    pullSecrets:
+    imagePullSecrets:
       - ghcr-login-secret
 
   # Arguments

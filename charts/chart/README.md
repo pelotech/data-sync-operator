@@ -15,8 +15,8 @@ A Helm chart to distribute the project data-sync-operator
 | crd.keep | bool | `true` |  |
 | manager.args[0] | string | `"--leader-elect"` |  |
 | manager.env | list | `[]` |  |
+| manager.image.imagePullSecrets[0] | string | `"ghcr-login-secret"` |  |
 | manager.image.pullPolicy | string | `"IfNotPresent"` |  |
-| manager.image.pullSecrets[0] | string | `"ghcr-login-secret"` |  |
 | manager.image.repository | string | `""` |  |
 | manager.image.tag | string | `""` |  |
 | manager.podSecurityContext.runAsNonRoot | bool | `true` |  |

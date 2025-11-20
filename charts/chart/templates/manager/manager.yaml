@@ -21,7 +21,7 @@ spec:
                 app.kubernetes.io/name: data-sync-operator
                 control-plane: controller-manager
         spec:
-            {{- with .Values.manager.image.pullSecrets }}
+            {{- with .Values.manager.image.imagePullSecrets }}
             imagePullSecrets:
               {{- toYaml . | nindent 16 }}
             {{- end }}
