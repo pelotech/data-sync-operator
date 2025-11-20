@@ -81,8 +81,9 @@ func (o Orchestrator) QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMD
 	vmdi.Status.Message = "Request is waiting for an available worker."
 
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
-		Type:   crdv1.VMDiskImageTypeReady,
-		Status: metav1.ConditionFalse, Reason: "Queued",
+		Type:    crdv1.VMDiskImageTypeReady,
+		Status:  metav1.ConditionFalse,
+		Reason:  "Queued",
 		Message: "The sync has been queued for processing.",
 	})
 
