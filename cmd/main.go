@@ -185,7 +185,6 @@ func main() {
 	}
 
 	if err := (&vmdiskimagectrl.VMDiskImageReconciler{
-		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "VMDiskImage")

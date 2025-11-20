@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	types "k8s.io/apimachinery/pkg/types"
 	crdv1 "pelotech/data-sync-operator/api/v1"
+	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +17,8 @@ import (
 )
 
 type VMDiskImageOrchestrator interface {
+	GetVMDiskImage(ctx context.Context, namespace types.NamespacedName, vmdi *crdv1.VMDiskImage) error
+	AddControllerFinalizer(ctx context.Context, vmdi *crdv1.VMDiskImage) error
 	IndexVMDiskImageByPhase(rawObj client.Object) []string
 	ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error)
 	QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
@@ -32,6 +36,16 @@ type Orchestrator struct {
 	RetryLimit   int
 	RetryBackoff time.Duration
 	SyncLimit    int
+}
+
+func (o Orchestrator) GetVMDiskImage(ctx context.Context, namespace types.NamespacedName, vmdi *crdv1.VMDiskImage) error {
+	return o.Get(ctx, namespace, vmdi)
+}
+
+func (o Orchestrator) AddControllerFinalizer(ctx context.Context, vmdi *crdv1.VMDiskImage) error {
+	crutils.AddFinalizer(vmdi, crdv1.VMDiskImageFinalizer)
+
+	return o.Update(ctx, vmdi)
 }
 
 func (o Orchestrator) ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error) {

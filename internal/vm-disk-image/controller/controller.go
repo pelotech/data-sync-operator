@@ -25,14 +25,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // VMDiskImageReconciler reconciles a VMDiskImage object
 type VMDiskImageReconciler struct {
-	client.Client
 	Scheme *runtime.Scheme
 	vmdi.VMDiskImageOrchestrator
 }
@@ -61,7 +59,7 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	var VMDiskImage crdv1.VMDiskImage
 
-	err := r.Get(ctx, req.NamespacedName, &VMDiskImage)
+	err := r.GetVMDiskImage(ctx, req.NamespacedName, &VMDiskImage)
 
 	if err != nil && errors.IsNotFound(err) {
 		logger.Info("Resource has been deleted.")
@@ -82,9 +80,7 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	resourceHasFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
 
 	if resourceHasFinalizer {
-		crutils.AddFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
-
-		err := r.Update(ctx, &VMDiskImage)
+		err := r.AddControllerFinalizer(ctx, &VMDiskImage)
 
 		if err != nil {
 			return r.HandleResourceUpdateError(ctx, &VMDiskImage, err, "Failed to add finalizer to our resource")
@@ -139,7 +135,6 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	reconciler := &VMDiskImageReconciler{
-		Client:                  client,
 		Scheme:                  mgr.GetScheme(),
 		VMDiskImageOrchestrator: orchestrator,
 	}

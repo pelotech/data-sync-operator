@@ -69,7 +69,6 @@ var _ = Describe("VMDiskImage Controller", func() {
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &VMDiskImageReconciler{
-				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}
 
