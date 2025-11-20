@@ -3,8 +3,8 @@ manager:
   replicas: 1
 
   image:
-    repository: ghcr.io/pelotech/data-sync-operator
-    tag: helm-chart-setup-test
+    repository: ""
+    tag: ""
     pullPolicy: IfNotPresent
     # A list of secrets to use for pulling images
     # Example:
