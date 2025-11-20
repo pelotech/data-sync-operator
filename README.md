@@ -80,6 +80,18 @@ chmod +x kubebuilder
 sudo mv kubebuilder /usr/local/bin/
 ```
 
+### Generating chart from kubebuilder manifests
+
+We can leverage the kubebuilder helm plugin to generate our chart from the manifest made by kubebuilder.
+
+There are few gotchas here so be careful. The generated chart will blast away anything not `values.yaml`, `Chart.yaml`, `_helpers.tpl`. When reviewing the changes ensure we keep any of our custom stuff. While annoying this shouldn't need to be done all to often.
+
+To regenerate the chart run
+
+```bash
+make generate-chart
+```
+
 ### To Deploy on the cluster
 **Build and push your image to the location specified by `IMG`:**
 
