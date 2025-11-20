@@ -125,8 +125,17 @@ build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
 
 .PHONY: run
-run: manifests generate fmt vet ## Run a controller from your host.
+run: manifests generate fmt vet ## Run a controller from your host. Use 'make dev' for a better development experience.
 	go run ./cmd/main.go
+
+.PHONY: dev
+dev: ## Run air for live reloading.
+	$(GOBIN)/air
+
+.PHONY: dev-build
+dev-build: manifests generate ## Run air for live reloading.
+	go build -o bin/manager cmd/main.go
+
 
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.

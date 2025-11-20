@@ -68,6 +68,23 @@ The below command will refresh the crd and reinstall it.
 make regenerate-crd
 ```
 
+## Local Development
+
+To run locally ensure you have [air](https://github.com/air-verse/air) installed.
+
+```bash
+go install github.com/air-verse/air@latest
+```
+
+Once installed use the below make command to run the operator with hot reload enabled
+
+> [!NOTE]
+> Currently changes CRD files still require manual generation.
+
+```bash
+make dev
+```
+
 ### To Deploy on the cluster
 **Build and push your image to the location specified by `IMG`:**
 
