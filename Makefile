@@ -96,6 +96,15 @@ install-cluster-deps:
 	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
 	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
 	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+	$(MAKE) setup-kind-image-pull-secret
+
+.PHONY: setup-kind-image-pull-secret
+setup-kind-image-pull-secret:
+	$(KUBECTL) create secret docker-registry ghcr-login-secret \
+		--docker-server=https://ghcr.io/pelotech/data-sync-operator \
+		--docker-username=$(GH_USER) \
+	  --docker-password=$(GH_PAT)
+
 
 .PHONY: test-e2e
 test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
