@@ -24,23 +24,23 @@ manager:
   podSecurityContext:
     runAsNonRoot: true
     seccompProfile:
-        type: RuntimeDefault
+      type: RuntimeDefault
 
   # Container-level security settings
   securityContext:
     allowPrivilegeEscalation: false
     capabilities:
-        drop:
-            - ALL
+      drop:
+        - ALL
 
   # Resource limits and requests
   resources:
     limits:
-        cpu: 500m
-        memory: 128Mi
+      cpu: 500m
+      memory: 128Mi
     requests:
-        cpu: 10m
-        memory: 64Mi
+      cpu: 10m
+      memory: 64Mi
 
 # Essential RBAC permissions (required for controller operation)
 # These include ServiceAccount, controller permissions, leader election, and metrics access
@@ -72,4 +72,3 @@ certManager:
 # Requires prometheus-operator to be installed in the cluster.
 prometheus:
   enable: false
-
