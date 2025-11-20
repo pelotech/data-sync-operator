@@ -123,7 +123,7 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	client := mgr.GetClient()
 
 	vmdiProvisioner := vmdi.K8sVMDIProvisioner{
-		K8sClient:         client,
+		Client:            client,
 		ResourceGenerator: resourceGenerator,
 		MaxSyncDuration:   config.MaxSyncDuration,
 		RetryLimit:        config.RetryLimit,

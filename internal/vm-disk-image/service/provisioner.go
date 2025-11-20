@@ -23,7 +23,7 @@ type VMDiskImageProvisioner interface {
 }
 
 type K8sVMDIProvisioner struct {
-	K8sClient         client.Client
+	client.Client
 	ResourceGenerator VMDIResourceGenerator
 	MaxSyncDuration   time.Duration
 	RetryLimit        int
@@ -43,13 +43,13 @@ func (p K8sVMDIProvisioner) CreateResources(
 		return err
 	}
 
-	err = p.K8sClient.Patch(ctx, dv, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
+	err = p.Patch(ctx, dv, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
 
 	if err != nil {
 		return err
 	}
 
-	err = p.K8sClient.Patch(ctx, vs, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
+	err = p.Patch(ctx, vs, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
 
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func (p K8sVMDIProvisioner) TearDownAllResources(
 	deleteByLabels := getLabelsToMatch(ds)
 
 	// First we tear down the PVCs that back the data volumes
-	err := p.K8sClient.DeleteAllOf(
+	err := p.DeleteAllOf(
 		ctx,
 		&corev1.PersistentVolumeClaim{},
 		client.InNamespace(ds.Namespace),
@@ -78,7 +78,7 @@ func (p K8sVMDIProvisioner) TearDownAllResources(
 	}
 
 	// Next the Datavolumes
-	err = p.K8sClient.DeleteAllOf(
+	err = p.DeleteAllOf(
 		ctx,
 		&cdiv1beta1.DataVolume{},
 		client.InNamespace(ds.Namespace),
@@ -90,7 +90,7 @@ func (p K8sVMDIProvisioner) TearDownAllResources(
 	}
 
 	// Finally the volumesnapshots
-	err = p.K8sClient.DeleteAllOf(
+	err = p.DeleteAllOf(
 		ctx,
 		&snapshotv1.VolumeSnapshot{},
 		client.InNamespace(ds.Namespace),
@@ -104,7 +104,7 @@ func (p K8sVMDIProvisioner) TearDownAllResources(
 	// If we have a finalizer remove it.
 	if crutils.ContainsFinalizer(ds, crdv1.VMDiskImageFinalizer) {
 		crutils.RemoveFinalizer(ds, crdv1.VMDiskImageFinalizer)
-		if err := p.K8sClient.Update(ctx, ds); err != nil {
+		if err := p.Update(ctx, ds); err != nil {
 			return err
 		}
 	}
@@ -128,7 +128,7 @@ func (p K8sVMDIProvisioner) ResourcesAreReady(
 
 	dataVolumeList := &cdiv1beta1.DataVolumeList{}
 
-	if err := p.K8sClient.List(ctx, dataVolumeList, listOps...); err != nil {
+	if err := p.List(ctx, dataVolumeList, listOps...); err != nil {
 		return false, fmt.Errorf("failed to list data volumes with the vm disk image %s: %w", vmdi.Name, err)
 	}
 
@@ -179,7 +179,7 @@ func (p K8sVMDIProvisioner) ResourcesHaveErrors(
 
 	dataVolumeList := &cdiv1beta1.DataVolumeList{}
 
-	if err := p.K8sClient.List(ctx, dataVolumeList, listOps...); err != nil {
+	if err := p.List(ctx, dataVolumeList, listOps...); err != nil {
 		return fmt.Errorf("failed to list datavolumes with the VMDiskImage %s: %w", ds.Name, err)
 	}
 

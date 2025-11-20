@@ -41,7 +41,7 @@ func (o Orchestrator) ListVMDiskImagesByPhase(ctx context.Context, phase string)
 		client.MatchingFields{".status.phase": phase},
 	}
 
-	if err := o.Client.List(ctx, list, listOpts...); err != nil {
+	if err := o.List(ctx, list, listOpts...); err != nil {
 		return nil, err
 	}
 
@@ -125,7 +125,7 @@ func (o Orchestrator) AttemptSyncingOfResource(
 
 	vmdi.Annotations[crdv1.SyncStartTimeAnnotation] = now
 
-	if err := o.Client.Patch(ctx, vmdi, client.MergeFrom(orginalDs)); err != nil {
+	if err := o.Patch(ctx, vmdi, client.MergeFrom(orginalDs)); err != nil {
 		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update sync start time")
 	}
 
@@ -206,7 +206,7 @@ func (o Orchestrator) HandleResourceUpdateError(
 		Message: originalErr.Error(),
 	})
 
-	if err := o.Client.Status().Update(ctx, vmdi); err != nil {
+	if err := o.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Could not update status to Failed after an initial update error")
 	}
 
@@ -229,7 +229,7 @@ func (o Orchestrator) HandleResourceCreationError(ctx context.Context, vmdi *crd
 		Message: originalErr.Error(),
 	})
 
-	if err := o.Client.Status().Update(ctx, vmdi); err != nil {
+	if err := o.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Could not update status to Failed resource creation failure")
 	}
 
@@ -250,7 +250,7 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 
 	vmdi.Status.FailureCount += 1
 
-	if err := o.Client.Status().Update(ctx, vmdi); err != nil {
+	if err := o.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Failed to update resource failure count")
 	}
 
@@ -269,7 +269,7 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 		Message: originalErr.Error(),
 	})
 
-	if err := o.Client.Status().Update(ctx, vmdi); err != nil {
+	if err := o.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Could not update status to Failed after an sync error")
 	}
 
