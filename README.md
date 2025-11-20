@@ -66,6 +66,18 @@ The below command will refresh the crd and reinstall it.
 
 ```bash
 make regenerate-crd
+- kubebuilder 4.10.1+
+
+### Install Kubebuilder
+
+```
+# Download the latest release
+curl -L -o kubebuilder "https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)"
+
+# Make it executable
+chmod +x kubebuilder
+
+sudo mv kubebuilder /usr/local/bin/
 ```
 
 ### To Deploy on the cluster
