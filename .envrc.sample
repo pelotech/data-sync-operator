@@ -1,0 +1,14 @@
+# NOTE: Values you need to set are marked with "TODO_*"
+
+# To read and push OCI artifacts locally, as well as download the LAP container from ghcr.io, you'll need a Github Personal
+# Access Token (Classic) with the following permissions:
+# - `read:packages`
+# - `write:packages` (only needed if you are testing content publishing in content studio, not needed for LAP)
+# - `repo (all)`
+#
+# Once this is created you need to authorize the token for the UKI org by clicking the 'Configure SSO' button on the token.
+export GH_PAT=TODO_GENERATE_ME
+
+# Your Github username
+export GH_USER=jimmy
+
