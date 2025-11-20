@@ -238,7 +238,7 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
 .PHONY: generate-chart
-generate-chart:
+generate-chart: manifests
 	kubebuilder edit --plugins=helm/v2-alpha --output-dir=charts
 
 
