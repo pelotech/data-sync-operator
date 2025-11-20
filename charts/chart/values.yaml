@@ -4,8 +4,14 @@ manager:
 
   image:
     repository: ghcr.io/pelotech/data-sync-operator
-    tag: latest
+    tag: helm-chart-setup-test
     pullPolicy: IfNotPresent
+    # A list of secrets to use for pulling images
+    # Example:
+    # pullSecrets:
+    #   - name: my-registry-secret
+    pullSecrets:
+      - ghcr-login-secret
 
   # Arguments
   args:
