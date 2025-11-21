@@ -1,4 +1,4 @@
-apiVersion: crd.pelotech.ot/v1
+apiVersion: crd.pelotech.ot/v1alpha1
 kind: VMDiskImage
 metadata:
   name: blank-vmdi-2

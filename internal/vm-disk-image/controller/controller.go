@@ -18,7 +18,8 @@ limitations under the License.
 
 import (
 	"context"
-	crdv1 "pelotech/data-sync-operator/api/v1"
+	crdv1 "pelotech/data-sync-operator/api/v1alpha1"
+
 	vmdiconfig "pelotech/data-sync-operator/internal/vm-disk-image/config"
 	vmdi "pelotech/data-sync-operator/internal/vm-disk-image/service"
 

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	crdv1 "pelotech/data-sync-operator/api/v1"
+	crdv1 "pelotech/data-sync-operator/api/v1alpha1"
 	"time"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"

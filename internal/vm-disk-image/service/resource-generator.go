@@ -4,7 +4,7 @@ import (
 	"errors"
 	"maps"
 
-	crdv1 "pelotech/data-sync-operator/api/v1"
+	crdv1 "pelotech/data-sync-operator/api/v1alpha1"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"

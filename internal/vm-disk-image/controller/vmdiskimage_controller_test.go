@@ -27,7 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	crdv1 "pelotech/data-sync-operator/api/v1"
+	crdv1alpha1 "pelotech/data-sync-operator/api/v1alpha1"
 )
 
 var _ = Describe("VMDiskImage Controller", func() {
@@ -40,13 +40,13 @@ var _ = Describe("VMDiskImage Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		vmdiskimage := &crdv1.VMDiskImage{}
+		vmdiskimage := &crdv1alpha1.VMDiskImage{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind VMDiskImage")
 			err := k8sClient.Get(ctx, typeNamespacedName, vmdiskimage)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &crdv1.VMDiskImage{
+				resource := &crdv1alpha1.VMDiskImage{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -59,7 +59,7 @@ var _ = Describe("VMDiskImage Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &crdv1.VMDiskImage{}
+			resource := &crdv1alpha1.VMDiskImage{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

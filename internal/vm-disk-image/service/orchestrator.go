@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	types "k8s.io/apimachinery/pkg/types"
-	crdv1 "pelotech/data-sync-operator/api/v1"
+	crdv1 "pelotech/data-sync-operator/api/v1alpha1"
 	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 

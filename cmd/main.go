@@ -36,7 +36,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	crdv1 "pelotech/data-sync-operator/api/v1"
+	crdv1 "pelotech/data-sync-operator/api/v1alpha1"
 	coreconfig "pelotech/data-sync-operator/internal/core/config"
 	vmdiskimagectrl "pelotech/data-sync-operator/internal/vm-disk-image/controller"
 
