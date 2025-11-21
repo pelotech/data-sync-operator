@@ -168,7 +168,7 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 	}
 
 	if !isDone {
-		logger.Info("Sync is not complete. Requeueing.")
+		logger.Info("Sync is not complete. Requeuing.")
 		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
 	}
 
@@ -213,7 +213,7 @@ func (o Orchestrator) HandleResourceUpdateError(
 
 	// Mark the resource as Failed
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseFailed
-	vmdi.Status.Message = "An error occurred durng reconciliation: " + originalErr.Error()
+	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
 		Type:    crdv1.VMDiskImageTypeReady,
 		Status:  metav1.ConditionFalse,
@@ -230,8 +230,8 @@ func (o Orchestrator) HandleResourceUpdateError(
 
 func (o Orchestrator) HandleResourceCreationError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
-	logger.Info("Handling a reousrce creation failure")
-	logger.Error(originalErr, "Failed to create a resource when trying to intiate resource sync")
+	logger.Info("Handling a resource creation failure")
+	logger.Error(originalErr, "Failed to create a resource.")
 
 	o.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources.")
 
@@ -276,7 +276,7 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 	o.Recorder.Eventf(vmdi, "Warning", "SyncExceededRetryCount", "The sync has failed beyond the set retry limit of %d", o.RetryLimit)
 
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseFailed
-	vmdi.Status.Message = "An error occurred durng reconciliation: " + originalErr.Error()
+	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
 		Type:    crdv1.VMDiskImageTypeFailed,
 		Status:  metav1.ConditionTrue,
@@ -285,7 +285,7 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 	})
 
 	if err := o.Status().Update(ctx, vmdi); err != nil {
-		logger.Error(err, "Could not update status to Failed after an sync error")
+		logger.Error(err, "Could not update status to Failed after a sync error")
 	}
 
 	err := o.Provisioner.TearDownAllResources(ctx, vmdi)
