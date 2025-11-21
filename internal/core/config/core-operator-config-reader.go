@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -120,7 +121,8 @@ func GetBoolEnvOrDefault(name string, defaultValue bool) bool {
 		// strconv.ParseBool is strict and only accepts 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False.
 		value, err := strconv.ParseBool(valueStr)
 		if err != nil {
-			panic(fmt.Sprintf("invalid boolean format for environment variable %s='%s': %v", name, valueStr, err))
+			slog.Info(fmt.Sprintf("invalid boolean format for environment variable %s='%s': %v", name, valueStr, err))
+			os.Exit(1)
 		}
 		return value
 	}
@@ -131,7 +133,8 @@ func GetIntEnvOrDefault(name string, defaultValue int) int {
 	if valueStr, ok := os.LookupEnv(name); ok {
 		value, err := strconv.Atoi(valueStr)
 		if err != nil {
-			panic(fmt.Sprintf("invalid integer format for environment variable %s='%s': %v", name, valueStr, err))
+			slog.Info(fmt.Sprintf("invalid integer format for environment variable %s='%s': %v", name, valueStr, err))
+			os.Exit(1)
 		}
 		return value
 	}
@@ -142,7 +145,8 @@ func GetDurationEnvOrDefault(name string, defaultValue time.Duration) time.Durat
 	if valueStr, ok := os.LookupEnv(name); ok {
 		value, err := time.ParseDuration(valueStr)
 		if err != nil {
-			panic(fmt.Sprintf("invalid duration format for environment variable %s='%s': %v", name, valueStr, err))
+			slog.Info(fmt.Sprintf("invalid duration format for environment variable %s='%s': %v", name, valueStr, err))
+			os.Exit(1)
 		}
 		return value
 	}
