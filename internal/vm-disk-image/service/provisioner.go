@@ -37,25 +37,9 @@ func (p K8sVMDIProvisioner) CreateResources(
 	ctx context.Context,
 	vmdi *crdv1.VMDiskImage,
 ) error {
-	vs, dv, err := p.ResourceGenerator.CreateStorageManifests(vmdi)
+	_, _, err := p.ResourceGenerator.CreateStorageManifests(vmdi)
 
-	if err != nil {
-		return err
-	}
-
-	err = p.Patch(ctx, dv, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
-
-	if err != nil {
-		return err
-	}
-
-	err = p.Patch(ctx, vs, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // Tear down the resources associated with a given VMDiskImage.
