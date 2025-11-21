@@ -147,8 +147,10 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	controllerSetupError := ctrl.NewControllerManagedBy(mgr).
 		For(&crdv1.VMDiskImage{}).
 		Named("vmdiskimage").
 		Complete(reconciler)
+
+	return controllerSetupError
 }
