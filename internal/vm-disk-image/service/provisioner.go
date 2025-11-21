@@ -45,14 +45,14 @@ func (p K8sVMDIProvisioner) CreateResources(
 	}
 
 	// Create the Data volume
-	err = p.Patch(ctx, dv, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
+	err = p.Patch(ctx, dv, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName), client.ForceOwnership)
 	if err != nil {
 		logger.Error(err, "Failed to create the backing datavolume for ", vmdi.Name, " within the cluster")
 		return err
 	}
 
 	// Create the volume snapshot
-	err = p.Patch(ctx, vs, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
+	err = p.Patch(ctx, vs, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName), client.ForceOwnership)
 	if err != nil {
 		logger.Error(err, "Failed to create the backing volumesnapshot for ", vmdi.Name, " within the cluster")
 		return err
