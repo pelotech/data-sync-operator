@@ -27,7 +27,6 @@ func (g *Generator) CreateStorageManifests(
 	volumeSnapshot := createVolumeSnapshot(vmdi)
 
 	dataVolume, err := createDataVolume(vmdi)
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -49,7 +48,6 @@ func createDataVolume(vmdi *crdv1.VMDiskImage) (*cdiv1beta1.DataVolume, error) {
 	}
 
 	diskSizeResource, err := resource.ParseQuantity(vmdi.Spec.DiskSize)
-
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +66,6 @@ func createDataVolume(vmdi *crdv1.VMDiskImage) (*cdiv1beta1.DataVolume, error) {
 	}
 
 	var source *cdiv1beta1.DataVolumeSource
-
 	switch vmdi.Spec.SourceType {
 	case "s3":
 		source = &cdiv1beta1.DataVolumeSource{
