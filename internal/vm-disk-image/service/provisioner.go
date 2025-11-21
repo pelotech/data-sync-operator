@@ -3,16 +3,15 @@ package service
 import (
 	"context"
 	"fmt"
+	crdv1 "pelotech/data-sync-operator/api/v1"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	corev1 "k8s.io/api/core/v1"
-	crdv1 "pelotech/data-sync-operator/api/v1"
-
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
+	corev1 "k8s.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type VMDiskImageProvisioner interface {
@@ -37,7 +36,27 @@ func (p K8sVMDIProvisioner) CreateResources(
 	ctx context.Context,
 	vmdi *crdv1.VMDiskImage,
 ) error {
-	_, _, err := p.ResourceGenerator.CreateStorageManifests(vmdi)
+	logger := logf.FromContext(ctx)
+
+	vs, dv, err := p.ResourceGenerator.CreateStorageManifests(vmdi)
+	if err != nil {
+		logger.Error(err, "Failed to create the storage manifests for VMDiskImage", vmdi.Name)
+		return err
+	}
+
+	// Create the Data volume
+	err = p.Patch(ctx, dv, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
+	if err != nil {
+		logger.Error(err, "Failed to create the backing datavolume for ", vmdi.Name, " within the cluster")
+		return err
+	}
+
+	// Create the volume snapshot
+	err = p.Patch(ctx, vs, client.Apply, client.FieldOwner(crdv1.VMDiskImageControllerName))
+	if err != nil {
+		logger.Error(err, "Failed to create the backing volumesnapshot for ", vmdi.Name, " within the cluster")
+		return err
+	}
 
 	return err
 }
