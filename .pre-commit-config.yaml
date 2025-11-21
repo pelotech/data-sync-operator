@@ -22,7 +22,7 @@ repos:
     args: [--strict, -c=.yamllint]
     exclude: ^config/
 - repo: https://github.com/golangci/golangci-lint
-  rev: v2.2.2
+  rev: v2.6.2
   hooks:
   - id: golangci-lint
 - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
