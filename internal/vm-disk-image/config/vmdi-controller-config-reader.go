@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	defaultConcurrency     = 1
+	defaultConcurrency     = 10 // TODO: We will need to tune this default
 	defaultRetryLimit      = 2
 	defaultBackoffDuration = 10 * time.Second
 	defaultMaxSyncDuration = 1 * time.Hour
