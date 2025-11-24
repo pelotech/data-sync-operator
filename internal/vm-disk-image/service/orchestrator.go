@@ -136,7 +136,6 @@ func (o Orchestrator) AttemptSyncingOfResource(
 	if err := o.Patch(ctx, vmdi, client.MergeFrom(orginalVMDI)); err != nil {
 		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update sync start time")
 	}
-
 	o.Recorder.Eventf(vmdi, "Normal", "SyncStarted", "Resource sync has started")
 
 	return ctrl.Result{}, nil
@@ -174,7 +173,6 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 	if err := o.Status().Update(ctx, vmdi); err != nil {
 		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Completed")
 	}
-
 	o.Recorder.Eventf(vmdi, "Normal", "SyncCompleted", "Resource sync completed successfully")
 
 	return ctrl.Result{}, nil
@@ -223,7 +221,6 @@ func (o Orchestrator) HandleResourceCreationError(ctx context.Context, vmdi *crd
 	logger.Error(originalErr, "Failed to create a resource.")
 
 	o.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources.")
-
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseFailed
 	vmdi.Status.Message = "Failed while creating resources: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
@@ -252,17 +249,14 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 	o.Recorder.Eventf(vmdi, "Warning", "SyncErrorOccurred", originalErr.Error())
 
 	vmdi.Status.FailureCount += 1
-
 	if err := o.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Failed to update resource failure count")
 	}
-
 	if vmdi.Status.FailureCount < o.RetryLimit {
 		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
 	}
 
 	o.Recorder.Eventf(vmdi, "Warning", "SyncExceededRetryCount", "The sync has failed beyond the set retry limit of %d", o.RetryLimit)
-
 	vmdi.Status.Phase = crdv1.VMDiskImagePhaseFailed
 	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
