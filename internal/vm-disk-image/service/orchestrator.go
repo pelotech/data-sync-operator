@@ -54,7 +54,6 @@ func (o Orchestrator) ListVMDiskImagesByPhase(ctx context.Context, phase string)
 	listOpts := []client.ListOption{
 		client.MatchingFields{".status.phase": phase},
 	}
-
 	if err := o.List(ctx, list, listOpts...); err != nil {
 		return nil, err
 	}
@@ -64,7 +63,6 @@ func (o Orchestrator) ListVMDiskImagesByPhase(ctx context.Context, phase string)
 
 func (o Orchestrator) IndexVMDiskImageByPhase(rawObj client.Object) []string {
 	vmdi, ok := rawObj.(*crdv1.VMDiskImage)
-
 	if !ok {
 		return nil
 	}
@@ -103,7 +101,6 @@ func (o Orchestrator) AttemptSyncingOfResource(
 	logger := logf.FromContext(ctx)
 
 	syncingList, err := o.ListVMDiskImagesByPhase(ctx, crdv1.VMDiskImagePhaseSyncing)
-
 	if err != nil {
 		logger.Error(err, "Failed to list syncing resources")
 		return ctrl.Result{}, err
@@ -115,7 +112,6 @@ func (o Orchestrator) AttemptSyncingOfResource(
 	}
 
 	err = o.Provisioner.CreateResources(ctx, vmdi)
-
 	if err != nil {
 		o.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources: "+err.Error())
 		return o.HandleResourceCreationError(ctx, vmdi, err)
@@ -134,13 +130,11 @@ func (o Orchestrator) AttemptSyncingOfResource(
 		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Syncing")
 	}
 
-	orginalDs := vmdi.DeepCopy()
-
+	orginalVMDI := vmdi.DeepCopy()
 	now := time.Now().Format(time.RFC3339)
-
 	vmdi.Annotations[crdv1.SyncStartTimeAnnotation] = now
 
-	if err := o.Patch(ctx, vmdi, client.MergeFrom(orginalDs)); err != nil {
+	if err := o.Patch(ctx, vmdi, client.MergeFrom(orginalVMDI)); err != nil {
 		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update sync start time")
 	}
 
@@ -154,7 +148,6 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 
 	// Check if there is an error occurring in the sync
 	syncError := o.Provisioner.ResourcesHaveErrors(ctx, vmdi)
-
 	if syncError != nil {
 		logger.Error(syncError, "A sync error has occurred.")
 		return o.HandleSyncError(ctx, vmdi, syncError, "A error has occurred while syncing")
@@ -162,11 +155,9 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 
 	// Check if the sync is done is not done
 	isDone, err := o.Provisioner.ResourcesAreReady(ctx, vmdi)
-
 	if err != nil {
 		logger.Error(err, "Unable to verify if resource is ready or not.")
 	}
-
 	if !isDone {
 		logger.Info("Sync is not complete. Requeuing.")
 		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
@@ -194,7 +185,6 @@ func (o Orchestrator) DeleteResource(ctx context.Context, vmdi *crdv1.VMDiskImag
 	logger := logf.FromContext(ctx)
 
 	err := o.Provisioner.TearDownAllResources(ctx, vmdi)
-
 	if err != nil {
 		logger.Error(err, "failed to cleanup child resources of VMDiskImage.")
 	}
@@ -249,7 +239,6 @@ func (o Orchestrator) HandleResourceCreationError(ctx context.Context, vmdi *crd
 	}
 
 	err := o.Provisioner.TearDownAllResources(ctx, vmdi)
-
 	if err != nil {
 		logger.Error(err, "Failed to teardown resources.")
 	}
@@ -289,7 +278,6 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 	}
 
 	err := o.Provisioner.TearDownAllResources(ctx, vmdi)
-
 	if err != nil {
 		logger.Error(err, "Failed to teardown resources.")
 	}

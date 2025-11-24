@@ -112,20 +112,17 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // the controller requires
 func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	logger := mgr.GetLogger()
-
 	config := vmdiconfig.LoadVMDIControllerConfigFromEnv()
-
-	resourceGenerator := &vmdi.Generator{}
 
 	client := mgr.GetClient()
 
+	resourceGenerator := &vmdi.Generator{}
 	vmdiProvisioner := vmdi.K8sVMDIProvisioner{
 		Client:            client,
 		ResourceGenerator: resourceGenerator,
 		MaxSyncDuration:   config.MaxSyncDuration,
 		RetryLimit:        config.RetryLimit,
 	}
-
 	orchestrator := vmdi.Orchestrator{
 		Client:       client,
 		Recorder:     mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
@@ -134,7 +131,6 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		RetryBackoff: config.RetryBackoffDuration,
 		SyncLimit:    config.Concurrency,
 	}
-
 	reconciler := &VMDiskImageReconciler{
 		Scheme:                  mgr.GetScheme(),
 		VMDiskImageOrchestrator: orchestrator,
