@@ -8,6 +8,7 @@ import (
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -146,20 +147,31 @@ func (p K8sVMDIProvisioner) ResourcesHaveErrors(
 	ctx context.Context,
 	vmdi *crdv1.VMDiskImage,
 ) error {
-	// Check if our VMDiskImage has been syncing for too long
+	logger := logf.FromContext(ctx)
+
+	condition := meta.FindStatusCondition(vmdi.Status.Conditions, crdv1.ConditionTypeReady)
+	if condition == nil || condition.Reason != crdv1.ReasonSyncing {
+		return fmt.Errorf("the VMDiskImage %s has no condition or is it's condition reason is not syncing", vmdi.Name)
+	}
+
 	now := time.Now()
+	syncStartTime := condition.LastTransitionTime.Time
 
-	syncStartTimeStr, exists := vmdi.Annotations[crdv1.SyncStartTimeAnnotation]
-	if !exists {
-		return fmt.Errorf("the VMDiskImage %s does not have a recorded sync start time", vmdi.Name)
+	var timeSyncing time.Duration
+	if now.Before(syncStartTime) {
+		skew := syncStartTime.Sub(now)
+		logger.Info("Clock Skew Detected: Node time is behind resource start time",
+			"node_time", now,
+			"resource_start_time", syncStartTime,
+			"skew_duration", skew,
+		)
+
+		// In the case of clock skew let the resource continue on. Don't fail it
+		timeSyncing = 0
+	} else {
+		// Normal calculation
+		timeSyncing = now.Sub(syncStartTime)
 	}
-
-	syncStartTime, err := time.Parse(time.RFC3339, syncStartTimeStr)
-	if err != nil {
-		return fmt.Errorf("the VMDiskImage %s does not have a parseable sync start time", vmdi.Name)
-	}
-
-	timeSyncing := now.Sub(syncStartTime)
 	if timeSyncing > p.MaxSyncDuration {
 		return fmt.Errorf("the VMDiskImage %s has been syncing longer than the allowed sync time", vmdi.Name)
 	}

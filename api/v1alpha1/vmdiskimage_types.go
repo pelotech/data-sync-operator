@@ -27,28 +27,32 @@ const (
 	VMDiskImageControllerName = "data-sync-operator-vmdi-controller"
 )
 
-// Condition types and reasons
+// Condition Types
 const (
-	VMDiskImageTypeReady  string = "Ready"
-	VMDiskImageTypeFailed string = "Failed"
+	ConditionTypeReady string = "Ready"
 )
 
-// VMDiskImage Phases
+// Condition Reasons
 const (
-	VMDiskImagePhaseQueued    string = "Queued"
-	VMDiskImagePhaseSyncing   string = "Syncing"
-	VMDiskImagePhaseCompleted string = "Completed"
-	VMDiskImagePhaseFailed    string = "Failed"
+	ReasonResourceCreationFailed string = "ResourceCreationFailed"
+	ReasonResouceUpdateFailed    string = "ResourceUpdateFailed"
+	ReasonQueued                 string = "Queued"
+	ReasonSyncing                string = "Syncing"
+	ReasonRetryLimitExceeded     string = "RetryLimitExceeded"
+	ReasonSynced                 string = "Synced"
+)
+
+// CRD phases
+const (
+	PhaseQueued  string = "Queued"
+	PhaseSyncing string = "Syncing"
+	PhaseReady   string = "Ready"
+	PhaseFailed  string = "Failed"
 )
 
 // VMDiskImage Labels
 const (
 	VMDiskImageOwnerLabel string = "owner"
-)
-
-// VMDiskImage Annotations
-const (
-	SyncStartTimeAnnotation = "sync-start-time"
 )
 
 const VMDiskImageFinalizer = "pelotech.ot/vm-disk-image-finalizer"
@@ -90,7 +94,7 @@ type VMDiskImageStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// +kubebuilder:validation:Enum=Queued;Syncing;Completed;Failed
+	// +kubebuilder:validation:Enum=Queued;Syncing;Ready;Failed
 	Phase string `json:"phase"`
 
 	// A human-readable message providing more details about the current phase.
@@ -106,7 +110,6 @@ type VMDiskImageStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=vmdiskimages,scope=Namespaced,shortName=vmdi,singular=vmdiskimage
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="The current phase of the VMDiskImage."
-// +kubebuilder:printcolumn:name="Resource Name",type="string",JSONPath=".spec.name",description="The name of the resource we are syncing."
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type VMDiskImage struct {
 	metav1.TypeMeta   `json:",inline"`

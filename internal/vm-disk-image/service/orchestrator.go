@@ -2,10 +2,11 @@ package service
 
 import (
 	"context"
-	types "k8s.io/apimachinery/pkg/types"
 	crdv1 "pelotech/data-sync-operator/api/v1alpha1"
-	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
+
+	types "k8s.io/apimachinery/pkg/types"
+	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -75,13 +76,13 @@ func (o Orchestrator) IndexVMDiskImageByPhase(rawObj client.Object) []string {
 }
 
 func (o Orchestrator) QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
-	vmdi.Status.Phase = crdv1.VMDiskImagePhaseQueued
+	vmdi.Status.Phase = crdv1.PhaseQueued
 	vmdi.Status.Message = "Request is waiting for an available worker."
 
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
-		Type:    crdv1.VMDiskImageTypeReady,
+		Type:    crdv1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  "Queued",
+		Reason:  crdv1.ReasonQueued,
 		Message: "The sync has been queued for processing.",
 	})
 
@@ -100,7 +101,7 @@ func (o Orchestrator) AttemptSyncingOfResource(
 ) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 
-	syncingList, err := o.ListVMDiskImagesByPhase(ctx, crdv1.VMDiskImagePhaseSyncing)
+	syncingList, err := o.ListVMDiskImagesByPhase(ctx, crdv1.PhaseSyncing)
 	if err != nil {
 		logger.Error(err, "Failed to list syncing resources")
 		return ctrl.Result{}, err
@@ -116,12 +117,12 @@ func (o Orchestrator) AttemptSyncingOfResource(
 		return o.HandleResourceCreationError(ctx, vmdi, err)
 	}
 
-	vmdi.Status.Phase = crdv1.VMDiskImagePhaseSyncing
+	vmdi.Status.Phase = crdv1.PhaseSyncing
 	vmdi.Status.Message = "Syncing VM data for the workspace."
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
-		Type:    crdv1.VMDiskImageTypeReady,
+		Type:    crdv1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  "Syncing",
+		Reason:  crdv1.ReasonSyncing,
 		Message: "The sync is currently in progress.",
 	})
 
@@ -129,13 +130,6 @@ func (o Orchestrator) AttemptSyncingOfResource(
 		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update status to Syncing")
 	}
 
-	orginalVMDI := vmdi.DeepCopy()
-	now := time.Now().Format(time.RFC3339)
-	vmdi.Annotations[crdv1.SyncStartTimeAnnotation] = now
-
-	if err := o.Patch(ctx, vmdi, client.MergeFrom(orginalVMDI)); err != nil {
-		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to update sync start time")
-	}
 	o.Recorder.Eventf(vmdi, "Normal", "SyncStarted", "Resource sync has started")
 
 	return ctrl.Result{}, nil
@@ -161,12 +155,12 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
 	}
 
-	vmdi.Status.Phase = crdv1.VMDiskImagePhaseCompleted
+	vmdi.Status.Phase = crdv1.PhaseReady
 	vmdi.Status.Message = "The data sync completed successfully."
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
-		Type:    crdv1.VMDiskImageTypeReady,
+		Type:    crdv1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
-		Reason:  "Completed",
+		Reason:  crdv1.ReasonSynced,
 		Message: "The sync finished successfully.",
 	})
 
@@ -199,12 +193,12 @@ func (o Orchestrator) HandleResourceUpdateError(
 	logger.Error(originalErr, message)
 
 	// Mark the resource as Failed
-	vmdi.Status.Phase = crdv1.VMDiskImagePhaseFailed
+	vmdi.Status.Phase = crdv1.PhaseFailed
 	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
-		Type:    crdv1.VMDiskImageTypeReady,
+		Type:    crdv1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  "UpdateError",
+		Reason:  crdv1.ReasonResouceUpdateFailed,
 		Message: originalErr.Error(),
 	})
 
@@ -221,12 +215,12 @@ func (o Orchestrator) HandleResourceCreationError(ctx context.Context, vmdi *crd
 	logger.Error(originalErr, "Failed to create a resource.")
 
 	o.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources.")
-	vmdi.Status.Phase = crdv1.VMDiskImagePhaseFailed
+	vmdi.Status.Phase = crdv1.PhaseFailed
 	vmdi.Status.Message = "Failed while creating resources: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
-		Type:    crdv1.VMDiskImageTypeReady,
+		Type:    crdv1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  "ResourceCreationFailed",
+		Reason:  crdv1.ReasonResourceCreationFailed,
 		Message: originalErr.Error(),
 	})
 
@@ -257,12 +251,12 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 	}
 
 	o.Recorder.Eventf(vmdi, "Warning", "SyncExceededRetryCount", "The sync has failed beyond the set retry limit of %d", o.RetryLimit)
-	vmdi.Status.Phase = crdv1.VMDiskImagePhaseFailed
+	vmdi.Status.Phase = crdv1.PhaseFailed
 	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
-		Type:    crdv1.VMDiskImageTypeFailed,
-		Status:  metav1.ConditionTrue,
-		Reason:  "SyncFailure",
+		Type:    crdv1.ConditionTypeReady,
+		Status:  metav1.ConditionFalse,
+		Reason:  crdv1.ReasonRetryLimitExceeded,
 		Message: originalErr.Error(),
 	})
 

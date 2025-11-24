@@ -89,11 +89,11 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	switch currentPhase {
 	case "":
 		return r.QueueResourceCreation(ctx, &VMDiskImage)
-	case crdv1.VMDiskImagePhaseQueued:
+	case crdv1.PhaseQueued:
 		return r.AttemptSyncingOfResource(ctx, &VMDiskImage)
-	case crdv1.VMDiskImagePhaseSyncing:
+	case crdv1.PhaseSyncing:
 		return r.TransitonFromSyncing(ctx, &VMDiskImage)
-	case crdv1.VMDiskImagePhaseCompleted, crdv1.VMDiskImagePhaseFailed:
+	case crdv1.PhaseReady, crdv1.PhaseFailed:
 		return ctrl.Result{}, nil
 	default:
 		logger.Error(nil, "Unknown phase detected", "Phase", currentPhase)
