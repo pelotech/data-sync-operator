@@ -16,6 +16,11 @@ jobs:
       - name: install pre-commit
         run: pip install pre-commit
 
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
 # TODO: add helm chart
 #      - name: Build dependencies Helm - kic
 #        uses: WyriHaximus/github-action-helm3@v4
