@@ -105,7 +105,6 @@ func (o Orchestrator) AttemptSyncingOfResource(
 		logger.Error(err, "Failed to list syncing resources")
 		return ctrl.Result{}, err
 	}
-
 	if len(syncingList.Items) >= o.SyncLimit {
 		o.Recorder.Eventf(vmdi, "Normal", "WaitingToSync", "No more than %d VMDiskImages can be syncing at once. Waiting...", o.SyncLimit)
 		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil

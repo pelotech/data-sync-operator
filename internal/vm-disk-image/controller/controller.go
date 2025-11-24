@@ -61,28 +61,23 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	var VMDiskImage crdv1.VMDiskImage
 
 	err := r.GetVMDiskImage(ctx, req.NamespacedName, &VMDiskImage)
-
 	if err != nil && errors.IsNotFound(err) {
 		logger.Info("Resource has been deleted.")
 		return ctrl.Result{}, nil
 	}
-
 	if err != nil {
 		logger.Error(err, "Failed to get VMDiskImage")
 		return ctrl.Result{}, err
 	}
 
 	resourceMarkedForDeletion := !VMDiskImage.GetDeletionTimestamp().IsZero()
-
 	if resourceMarkedForDeletion {
 		return r.VMDiskImageOrchestrator.DeleteResource(ctx, &VMDiskImage)
 	}
 
 	resourceHasFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
-
 	if resourceHasFinalizer {
 		err := r.AddControllerFinalizer(ctx, &VMDiskImage)
-
 		if err != nil {
 			return r.HandleResourceUpdateError(ctx, &VMDiskImage, err, "Failed to add finalizer to our resource")
 		}
@@ -91,7 +86,6 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	currentPhase := VMDiskImage.Status.Phase
 	logger.Info("Reconciling VMDiskImage", "Phase", currentPhase, "Name", VMDiskImage.Name)
-
 	switch currentPhase {
 	case "":
 		return r.QueueResourceCreation(ctx, &VMDiskImage)
@@ -137,8 +131,13 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Index resources by phase since we have to query these quite a bit
-	err := mgr.GetFieldIndexer().IndexField(context.Background(), &crdv1.VMDiskImage{}, ".status.phase", reconciler.IndexVMDiskImageByPhase)
-
+	err := mgr.GetFieldIndexer().
+		IndexField(
+			context.TODO(),
+			&crdv1.VMDiskImage{},
+			".status.phase",
+			reconciler.IndexVMDiskImageByPhase,
+		)
 	if err != nil {
 		logger.Error(err, "Failed to created indexer")
 		return err
