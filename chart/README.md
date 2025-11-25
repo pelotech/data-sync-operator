@@ -26,8 +26,7 @@ A Helm chart to distribute the project data-sync-operator
 | manager.resources.requests.memory | string | `"64Mi"` |  |
 | manager.securityContext.allowPrivilegeEscalation | bool | `false` |  |
 | manager.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
-| metrics.enable | bool | `true` |  |
+| metrics.enable | bool | `false` |  |
 | metrics.port | int | `8443` |  |
-| prometheus.enable | bool | `false` |  |
 | rbacHelpers.enable | bool | `false` |  |
 
