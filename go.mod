@@ -6,7 +6,7 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/client/v6 v6.3.0
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
