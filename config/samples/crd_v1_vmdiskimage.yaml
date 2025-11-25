@@ -1,4 +1,4 @@
-apiVersion: crd.pelotech.ot/v1
+apiVersion: crd.pelotech.ot/v1aplha1
 kind: VMDiskImage
 metadata:
   labels:
@@ -6,4 +6,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: vmdiskimage-sample
 spec:
-  # TODO(user): Add fields here
+  secretRef: "secret-1"
+  sourceType: blank
+  diskSize: "1Mi"
+  snapshotClass: "daily-snapshots"
