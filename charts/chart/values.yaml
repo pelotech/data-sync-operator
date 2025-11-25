@@ -3,7 +3,7 @@ manager:
   replicas: 1
 
   image:
-    repository: controller
+    repository: ghcr.io/pelotech/data-sync-operator
     tag: latest
     pullPolicy: IfNotPresent
 

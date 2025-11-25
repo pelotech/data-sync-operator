@@ -14,7 +14,7 @@ A Helm chart to distribute the project data-sync-operator
 | manager.args[0] | string | `"--leader-elect"` |  |
 | manager.env | list | `[]` |  |
 | manager.image.pullPolicy | string | `"IfNotPresent"` |  |
-| manager.image.repository | string | `"controller"` |  |
+| manager.image.repository | string | `"ghcr.io/pelotech/data-sync-operator"` |  |
 | manager.image.tag | string | `"latest"` |  |
 | manager.imagePullSecrets | list | `[]` |  |
 | manager.podSecurityContext.runAsNonRoot | bool | `true` |  |
