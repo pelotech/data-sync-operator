@@ -79,7 +79,7 @@ go install github.com/air-verse/air@latest
 Once installed use the below make command to run the operator with hot reload enabled
 
 > [!NOTE]
-> Currently changes CRD files still require manual generation.
+> While the `make dev` command will regenerate the manifests should changes occur you will need to manually install them.
 
 ```bash
 make dev
