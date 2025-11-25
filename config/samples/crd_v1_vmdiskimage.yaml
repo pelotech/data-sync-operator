@@ -1,0 +1,9 @@
+apiVersion: crd.pelotech.ot/v1
+kind: VMDiskImage
+metadata:
+  labels:
+    app.kubernetes.io/name: data-sync-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: vmdiskimage-sample
+spec:
+  # TODO(user): Add fields here
