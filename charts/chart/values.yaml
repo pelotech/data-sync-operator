@@ -11,6 +11,9 @@ manager:
   args:
     - --leader-elect
 
+  # Image pull secrets
+  imagePullSecrets: []
+
   # Environment variables
   env: []
 

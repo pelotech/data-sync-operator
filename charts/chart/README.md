@@ -16,6 +16,7 @@ A Helm chart to distribute the project data-sync-operator
 | manager.image.pullPolicy | string | `"IfNotPresent"` |  |
 | manager.image.repository | string | `"controller"` |  |
 | manager.image.tag | string | `"latest"` |  |
+| manager.imagePullSecrets | list | `[]` |  |
 | manager.podSecurityContext.runAsNonRoot | bool | `true` |  |
 | manager.podSecurityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
 | manager.replicas | int | `1` |  |
