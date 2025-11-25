@@ -248,7 +248,7 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 
 .PHONY: generate-chart
 generate-chart: manifests
-	kubebuilder edit --plugins=helm/v2-alpha --output-dir=charts
+	kubebuilder edit --plugins=helm/v2-alpha --output-dir=./
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary

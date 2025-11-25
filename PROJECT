@@ -9,7 +9,7 @@ layout:
 plugins:
   helm.kubebuilder.io/v2-alpha:
     manifests: dist/install.yaml
-    output: charts
+    output: ./
 projectName: data-sync-operator
 repo: pelotech/data-sync-operator
 resources:
