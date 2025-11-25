@@ -37,6 +37,8 @@ spec:
                     - /manager
                   image: "{{ .Values.manager.image.repository }}:{{ .Values.manager.image.tag }}"
                   imagePullPolicy: {{ .Values.manager.image.pullPolicy }}
+                  env:
+                    {{- toYaml .Values.manager.env | nindent 20 }}
                   livenessProbe:
                     httpGet:
                         path: /healthz
@@ -64,6 +66,10 @@ spec:
                     {}
                     {{- end }}
                   volumeMounts: []
+            {{- with .Values.manager.imagePullSecrets }}
+            imagePullSecrets:
+              {{- toYaml . | nindent 16 }}
+            {{- end }}
             securityContext:
               {{- if .Values.manager.podSecurityContext }}
               {{- toYaml .Values.manager.podSecurityContext | nindent 14 }}
