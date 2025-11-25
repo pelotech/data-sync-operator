@@ -14,6 +14,19 @@ More information can be found via the [Kubebuilder Documentation](https://book.k
 - kubectl version v1.11.3+.
 - Access to a Kubernetes v1.11.3+ cluster.
 - kind version v0.29.0+
+- kubebuilder 4.10.1+
+
+### Install Kubebuilder
+
+# Download the latest release
+`curl -L -o kubebuilder "https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)"`
+
+# Make it executable
+```bash
+chmod +x kubebuilder
+
+sudo mv kubebuilder /usr/local/bin/
+```
 
 ### Local Development
 
@@ -64,21 +77,7 @@ If you need to make changes to the shape of a CRD you will need to regenerate ma
 
 The below command will refresh the crd and reinstall it.
 
-```bash
-make regenerate-crd
-- kubebuilder 4.10.1+
-
-### Install Kubebuilder
-
-```
-# Download the latest release
-curl -L -o kubebuilder "https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)"
-
-# Make it executable
-chmod +x kubebuilder
-
-sudo mv kubebuilder /usr/local/bin/
-```
+`make regenerate-crd`
 
 ### Generating chart from kubebuilder manifests
 
