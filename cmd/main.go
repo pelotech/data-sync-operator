@@ -40,7 +40,7 @@ import (
 	coreconfig "pelotech/data-sync-operator/internal/core/config"
 	vmdiskimagectrl "pelotech/data-sync-operator/internal/vm-disk-image/controller"
 
-	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
+	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
