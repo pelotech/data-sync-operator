@@ -1,5 +1,6 @@
 # data-sync-operator
-K8s operator designed to orchestrate the syncing of datavolumes
+A Kubernetes Operator designed to handle the lifecycle around "Workspaces". Name change pending
+
 
 ## Description
 This project is currently in active development and should be considered pre-alpha in its current state.
@@ -51,38 +52,7 @@ Next run the below command to install our CRD onto your cluster.
 make install
 ```
 
-Finally please install the dependencies required for the operator to run. Currently the operator requires a secret and configmap to be installed in the same namespace as it. These resources are required for pulling from s3 and other resources. In the actual deployed operator we will check for these in a initContainer however we still look for them in the code as well.
-
-To install please run the below command.
-
-> **NOTE**: The yamls in the test/secret-yamls directory contain only dummy values. You will need to populate them with real values if you want to pull locally from a registry. Instructions on what to do to get the correct values can be found in the yaml files within the directory.
-
-
-```bash
-kubectl apply -f test/secret-yamls
-```
-
-#### Starting the operator locally
-
-To start the operator outside of the cluster please run the below command. This will run the operator on your machine. Please note that this does not support hot reloading. You will need to restart the server as you make changes.
-
-```bash
-make run
-```
-
-
-##### Making Changes to the shape of our CRDs.
-
-If you need to make changes to the shape of a CRD you will need to regenerate manifests and code created via kubebuilder.
-
-The below command will refresh the crd and reinstall it.
-
-```bash
-make regenerate-crd
-```
-
-## Local Development
-
+##### Running the operator locally.
 To run locally ensure you have [air](https://github.com/air-verse/air) installed.
 
 ```bash
@@ -98,81 +68,36 @@ Once installed use the below make command to run the operator with hot reload en
 make dev
 ```
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
 
-```sh
-make docker-build docker-push IMG=<some-registry>/data-sync-operator:tag
+##### Making Changes to the shape of our CRDs.
+
+If you need to make changes to the shape of a CRD you will need to regenerate manifests and code created via kubebuilder.
+
+The below command will refresh the crd and reinstall it.
+
+```bash
+make regenerate-crd
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
-
-**Install the CRDs into the cluster:**
-
-```sh
-make install
-```
-
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
-
-```sh
-make deploy IMG=<some-registry>/data-sync-operator:tag
-```
-
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
-
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
-
-```sh
-kubectl apply -k config/samples/
-```
-
->**NOTE**: Ensure that the samples has default values to test it out.
-
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
-
-```sh
-kubectl delete -k config/samples/
-```
-
-**Delete the APIs(CRDs) from the cluster:**
-
-```sh
-make uninstall
-```
-
-**UnDeploy the controller from the cluster:**
-
-```sh
-make undeploy
-```
 
 ## Project Distribution
 
 Following the options to release and provide this solution to the users.
 
-### By providing a Helm Chart
+### Helm Chart
 
 1. Build the chart using the optional helm plugin
 
 ```sh
-kubebuilder edit --plugins=helm/v1-alpha
+make generate-chart
 ```
 
-2. See that a chart was generated under 'dist/chart', and users
+2. See that a chart was generated under './chart', and users
 can obtain this solution from there.
 
 **NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
+using the same command above to sync the latest changes. Please be aware
+any custom changes made prior will need to be reapplied
 
 
 
