@@ -12,8 +12,21 @@ More information can be found via the [Kubebuilder Documentation](https://book.k
 - go version v1.25.0+
 - docker version 17.03+.
 - kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+- Access to a Kubernetes v1.33.3+ cluster.
 - kind version v0.29.0+
+- kubebuilder 4.10.1+
+
+### Install Kubebuilder
+
+# Download the latest release
+`curl -L -o kubebuilder "https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)"`
+
+# Make it executable
+```bash
+chmod +x kubebuilder
+
+sudo mv kubebuilder /usr/local/bin/
+```
 
 ### Local Development
 
