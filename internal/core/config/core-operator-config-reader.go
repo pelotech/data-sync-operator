@@ -56,8 +56,7 @@ func LoadCoreConfigFromEnv() CoreConfig {
 	cfg.EnableHTTP2 = GetBoolEnvOrDefault("ENABLE_HTTP2", false)
 
 	// DEV_MODE: If set, the operator will run in development mode. Default: false
-	// TODO: SET THIS BACK TO FALSE
-	cfg.DevMode = GetBoolEnvOrDefault("DEV_MODE", true)
+	cfg.DevMode = GetBoolEnvOrDefault("DEV_MODE", false)
 
 	// --- Webhook Configuration ---
 
