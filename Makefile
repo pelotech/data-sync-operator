@@ -93,9 +93,11 @@ install-cluster-deps:
 	kubectl --context=$(DEV_CLUSTER_CTX) create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$${VERSION}/cdi-operator.yaml; \
 	kubectl --context=$(DEV_CLUSTER_CTX) create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$${VERSION}/cdi-cr.yaml
 	# Install volumesnapshot
-	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-8.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+	VS_VERSION=$$(curl -s https://api.github.com/repos/kubernetes-csi/external-snapshotter/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'); \
+	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$${VS_VERSION}/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml; \
+	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$${VS_VERSION}/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml; \
+	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$${VS_VERSION}/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml; \
+	kubectl --context=$(DEV_CLUSTER_CTX) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$${VS_VERSION}/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
 
 .PHONY: test-e2e
 test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
