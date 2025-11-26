@@ -62,7 +62,7 @@ go install github.com/air-verse/air@latest
 Once installed use the below make command to run the operator with hot reload enabled
 
 > **NOTE**:
-> While the `make dev` command will regenerate the manifests should changes occur you will need to manually install them.
+> The `make dev` command will regenerate the manifests; you will need to manually install them to reflect any changes.
 
 ```bash
 make dev
