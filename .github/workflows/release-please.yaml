@@ -15,7 +15,8 @@ jobs:
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
+      app_version: ${{ steps.versions.outputs.app_version }}
+      chart_version: ${{ steps.versions.outputs.chart_version }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -23,9 +24,19 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+      - name: release-details
+        id: release-details
+        run: |
+          echo "${{ toJSON(steps.release.outputs) }}"
+      - name: versions
+        if: ${{ fromJSON(steps.release.outputs.releases_created) }}
+        id: versions
+        run: |
+          echo "app_version=${{ fromJson(steps.release.outputs.['data-sync-operator--version'] || '0.0.0') }}" >> $GITHUB_OUTPUT
+          echo "chart_version=${{ fromJson(steps.release.outputs['data-sync-operator-chart--version'] || '0.0.0') }}" >> $GITHUB_OUTPUT
 
   publish-tag-app-artifact:
-    if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), '.') }}
+    if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), 'data-sync-operator') }}
     runs-on: ubuntu-latest
     needs: [release-please]
     permissions:
@@ -47,7 +58,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,pattern={{version}},value=${{ needs.release-please.outputs.tag_name }}
+            type=raw,pattern={{version}},value=${{ needs.release-please.outputs.app_version }}
       - name: Build and push Docker image tag
         uses: docker/build-push-action@v6
         with:
@@ -56,12 +67,12 @@ jobs:
           file: Dockerfile
           push: true
           build-args: |
-            BUILD_VERSION="${{ needs.release-please.outputs.tag_name }}"
+            BUILD_VERSION="${{ needs.release-please.outputs.app_version }}"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
   publish-tag-chart-artifact:
-    if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), 'chart') }}
+    if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), 'data-sync-operator-chart') }}
     runs-on: ubuntu-latest
     needs: [release-please]
     permissions:
@@ -81,7 +92,7 @@ jobs:
           name: data-sync-operator-chart
           repository: ${{ github.repository }}
           path: chart
-          tag: ${{ needs.release-please.outputs.tag_name }}
+          tag: ${{ needs.release-please.outputs.chart_version }}
           registry: ghcr.io
           registry_username: ${{ github.actor }}
           registry_password: ${{ secrets.GITHUB_TOKEN }}
