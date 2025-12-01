@@ -32,8 +32,8 @@ jobs:
         if: ${{ fromJSON(steps.release.outputs.releases_created) }}
         id: versions
         run: |
-          echo "app_version=${{ fromJson(steps.release.outputs.version || '0.0.0') }}" >> $GITHUB_OUTPUT
-          echo "chart_version=${{ fromJson(steps.release.outputs['chart--version'] || '0.0.0') }}" >> $GITHUB_OUTPUT
+          echo "app_version=${{ fromJson(steps.release.outputs.['data-sync-operator--version'] || '0.0.0') }}" >> $GITHUB_OUTPUT
+          echo "chart_version=${{ fromJson(steps.release.outputs['data-sync-operator-chart--version'] || '0.0.0') }}" >> $GITHUB_OUTPUT
 
   publish-tag-app-artifact:
     if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), '.') }}
