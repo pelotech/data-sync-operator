@@ -5,10 +5,12 @@
   "tag-separator": "/",
   "packages": {
     "chart": {
-      "release-type": "helm"
+      "release-type": "helm",
+      "package-name": "data-sync-operator-chart"
     },
     ".": {
       "release-type": "go",
+      "package-name": "data-sync-operator",
       "exclude-paths": [
         "chart"
       ]
