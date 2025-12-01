@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.2](https://github.com/pelotech/data-sync-operator/compare/data-sync-operator-chart/v1.0.1...data-sync-operator-chart/v1.0.2) (2025-12-01)
+
+
+### Bug Fixes
+
+* rename the chart so it doesn't conflict with the repo name ([#32](https://github.com/pelotech/data-sync-operator/issues/32)) ([335116b](https://github.com/pelotech/data-sync-operator/commit/335116b0091549091c76eae95302bc1b5e629a8a))
+
+
+### Chores
+
+* use path not chart_path ([#30](https://github.com/pelotech/data-sync-operator/issues/30)) ([1d1f4a3](https://github.com/pelotech/data-sync-operator/commit/1d1f4a392da0d59ace3e1bbb4d0bc18827048bb4))
+
 ## [1.0.1](https://github.com/pelotech/data-sync-operator/compare/data-sync-operator-chart/v1.0.0...data-sync-operator-chart/v1.0.1) (2025-12-01)
 
 
