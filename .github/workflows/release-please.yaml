@@ -16,7 +16,7 @@ jobs:
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
-      tag_name: ${{ steps.release.outputs.version }}
+      tag_name: ${{ steps.version.outputs.version }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -24,6 +24,10 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+      - name: version
+        id: version
+        run: |
+          echo "version=${{ steps.release.outputs.version }}" >> $GITHUB_OUTPUT
 
   publish-tag-app-artifact:
     if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), '.') }}
