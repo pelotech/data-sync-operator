@@ -1,6 +1,5 @@
 name: Release Please
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -25,8 +24,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-      - name: debug
-        id: debug
+      - name: release-details
+        id: release-details
         run: |
           echo "${{ toJSON(steps.release.outputs) }}"
       - name: versions
