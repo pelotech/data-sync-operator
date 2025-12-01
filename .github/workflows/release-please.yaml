@@ -25,12 +25,16 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+      - name: debug
+        id: debug
+        run: |
+          echo "${{ steps.release.outputs }}"
       - name: versions
+        if: ${{ fromJSON(steps.release.outputs.releases_created) }}
         id: versions
         run: |
-          echo ${{ steps.release.outputs }}
-          ## echo "app_version=${{ fromJson(steps.release.outputs.version) }}" >> $GITHUB_OUTPUT
-          ## echo "chart_version=${{ fromJson(steps.release.outputs['chart--version']) }}" >> $GITHUB_OUTPUT
+          echo "app_version=${{ fromJson(steps.release.outputs.version) }}" >> $GITHUB_OUTPUT
+          echo "chart_version=${{ fromJson(steps.release.outputs['chart--version']) }}" >> $GITHUB_OUTPUT
 
   publish-tag-app-artifact:
     if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), '.') }}
