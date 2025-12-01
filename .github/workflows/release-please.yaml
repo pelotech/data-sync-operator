@@ -80,7 +80,7 @@ jobs:
         with:
           name: data-sync-operator-chart
           repository: ${{ github.repository }}
-          chart_path: chart
+          path: chart
           tag: ${{ needs.release-please.outputs.tag_name }}
           registry: ghcr.io
           registry_username: ${{ github.actor }}
