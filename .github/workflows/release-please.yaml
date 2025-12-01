@@ -28,7 +28,7 @@ jobs:
       - name: debug
         id: debug
         run: |
-          echo "${{ steps.release.outputs }}"
+          echo "${{ toJSON(steps.release.outputs) }}"
       - name: versions
         if: ${{ fromJSON(steps.release.outputs.releases_created) }}
         id: versions
