@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/pelotech/data-sync-operator/compare/data-sync-operator-chart/v1.0.3...data-sync-operator-chart/v1.0.4) (2025-12-01)
+
+
+### Chores
+
+* manually bump chart readme version ([78c0e80](https://github.com/pelotech/data-sync-operator/commit/78c0e80b7225269f1165f96b4d9ffdab265d1df8))
+
 ## [1.0.3](https://github.com/pelotech/data-sync-operator/compare/data-sync-operator-chart/v1.0.2...data-sync-operator-chart/v1.0.3) (2025-12-01)
 
 
