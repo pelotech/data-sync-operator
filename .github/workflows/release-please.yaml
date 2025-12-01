@@ -16,7 +16,7 @@ jobs:
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
-      tag_name: ${{ steps.version.outputs.version }}
+      release_version: ${{ steps.version.outputs.version }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -52,7 +52,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,pattern={{version}},value=${{ needs.release-please.outputs.tag_name }}
+            type=raw,pattern={{version}},value=${{ needs.release-please.outputs.release_version }}
       - name: Build and push Docker image tag
         uses: docker/build-push-action@v6
         with:
@@ -61,7 +61,7 @@ jobs:
           file: Dockerfile
           push: true
           build-args: |
-            BUILD_VERSION="${{ needs.release-please.outputs.tag_name }}"
+            BUILD_VERSION="${{ needs.release-please.outputs.release_version }}"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -86,7 +86,7 @@ jobs:
           name: data-sync-operator-chart
           repository: ${{ github.repository }}
           path: chart
-          tag: ${{ needs.release-please.outputs.tag_name }}
+          tag: ${{ needs.release-please.outputs.release_version }}
           registry: ghcr.io
           registry_username: ${{ github.actor }}
           registry_password: ${{ secrets.GITHUB_TOKEN }}
