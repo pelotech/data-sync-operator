@@ -16,7 +16,8 @@ jobs:
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
-      release_version: ${{ steps.version.outputs.version }}
+      app_version: ${{ steps.versions.outputs.app_version }}
+      chart_version: ${{ steps.versions.outputs.chart_version }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -24,10 +25,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-      - name: version
-        id: version
+      - name: versions
+        id: versions
         run: |
-          echo "version=${{ steps.release.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "app_version=$(jq -r '.version' <<< '${{ steps.release.outputs['.'] }}')" >> $GITHUB_OUTPUT
+          echo "chart_version=$(jq -r '.version' <<< '${{ steps.release.outputs.chart }}')" >> $GITHUB_OUTPUT
 
   publish-tag-app-artifact:
     if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), '.') }}
@@ -52,7 +54,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,pattern={{version}},value=${{ needs.release-please.outputs.release_version }}
+            type=raw,pattern={{version}},value=${{ needs.release-please.outputs.app_version }}
       - name: Build and push Docker image tag
         uses: docker/build-push-action@v6
         with:
@@ -61,7 +63,7 @@ jobs:
           file: Dockerfile
           push: true
           build-args: |
-            BUILD_VERSION="${{ needs.release-please.outputs.release_version }}"
+            BUILD_VERSION="${{ needs.release-please.outputs.app_version }}"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -86,7 +88,7 @@ jobs:
           name: data-sync-operator-chart
           repository: ${{ github.repository }}
           path: chart
-          tag: ${{ needs.release-please.outputs.release_version }}
+          tag: ${{ needs.release-please.outputs.chart_version }}
           registry: ghcr.io
           registry_username: ${{ github.actor }}
           registry_password: ${{ secrets.GITHUB_TOKEN }}
