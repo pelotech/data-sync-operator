@@ -25,11 +25,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-      - name: Debug Output Content
-        run: |
-          echo "RAW DOT OUTPUT: '${{ fromJson(steps.release.outputs['.']).version }}'"
-          echo "RAW CHART OUTPUT: '${{ fromJson(steps.release.outputs.chart).version }}'"
       - name: versions
+        if: ${{ fromJSON(steps.release.outputs.releases_created) }}
         id: versions
         run: |
           echo "app_version=${{ fromJson(steps.release.outputs['.']).version }}" >> $GITHUB_OUTPUT
