@@ -15,18 +15,14 @@ As Open Terrain (OT) environments grow in complexity, there is an increasing nee
 ### **3. Proposed Architecture**
 The proposed solution is a new `Workspace` CRD and controller that builds upon the existing `VMDiskImage` controller's patterns. It introduces a high-level abstraction for an entire environment.
 
-The `Workspace` CRD will serve as a blueprint for a complete, isolated environment. It will define all the necessary VMs, containers, and networking rules. The workspace CRD will be a cluster scoped resource.
+The `Workspace` CRD will serve as a blueprint for a complete, isolated environment. It will define all the necessary VMs, containers, and networking rules. The introduction of this cluster scoped resource will allow the platform team to have a single interface for OT customers to deploy workspaces to the system.
 
 ### **3.1 Workspace Lifecycle**
 The `Workspace` can be in the following phases during its lifecycle.
 
-- `Provisioning`: The Workspace has being stood up
+- `Provisioning`: The Workspace is being stood up.
 - `Failed`: Something happened and we cannot recover the workspace.
 - `Ready`: The workspace has been successfully provisioned and is ready for use.
-
-The `Workspace` can have the following conditions.
-
-- `CreatingWorks`
 
 **Example `Workspace` Manifest:**
 ```yaml
@@ -39,11 +35,9 @@ spec:
   # The controller will create a VMDiskImage resource for each entry.
   virtualMachines:
     - name: "database-vm"
-      spec:
-        VMDiskImageName: "database-vmdi"
+      vmdiskImageName: "database-vmdi"
     - name: "analytics-vm"
-      spec:
-        VMDiskImageName: "analytics-vmdi"
+      vmdiskImageName: "analytics-vmdi"
 
   # Defines the containers to be included in the workspace.
   # The controller will create a Deployment for each entry.
@@ -82,42 +76,35 @@ status:
 #### **3.3: The Workspace Controller**
 The Workspace Controller will orchestrate the creation and management of all resources defined in a `Workspace` manifest.
 
-**Operator Logic:**
-- **Watch for Workspaces**: The operator watches for new `Workspace` resources.
-- **Enforce Concurrency**: It adheres to the `workspaceConcurrency` limit defined in the `ConfigMap`.
-- **Resource Orchestration**: For each `Workspace` resource, the controller will:
-    1. Create a `VMDiskImage` resource for each entry in the `spec.virtualMachines` list.
-    2. Create a `Deployment` and `Service` for each entry in the `spec.containers` list.
-    3. If `spec.network.isolate` is `true`, create a `NetworkPolicy` that allows traffic only between the pods and VMs belonging to this workspace.
-- **Update Status**: The controller provides real-time feedback by updating the `status` field of the `Workspace` resource, aggregating the status of all child resources.
 
 ### **4. End-to-End Controller Workflow**
 ```mermaid
-flowchart TD
-    subgraph "Setup (Admin)"
-        A["Admin configures the 'sync-operator-policy' ConfigMap"]
-    end
-    subgraph "Event (User/CI)"
-        B["User or CI system creates a Workspace resource"]
-    end
-    subgraph "Workspace Controller Logic"
-        C{"Controller detects new Workspace"};
-        A --> C;
-        B --> C;
-        C --> D{"Process Workspace, respecting concurrency limit"};
-        D --> E["Create VMDiskImage CRs"];
-        D --> F["Create Deployments & Services"];
-        D --> G["Create isolating NetworkPolicy"];
-        subgraph "VMDiskImage Controller"
-           E --> H["VMDiskImage controller syncs disks"]
-        end
-        G --> I["Update Workspace status with progress"];
-        F --> I;
-        H --> I;
-    end
-```
+    stateDiagram-v2
+    direction TB
 
-### **5. Future Considerations (Non-MVP)**
-- **Inter-Workspace Communication**: Develop a mechanism to define explicit rules for allowing traffic between specific workspaces.
-- **Advanced Networking**: Support for more complex network topologies, such as defining specific `Egress` or `Ingress` rules to external services.
-- **Templating**: Introduce a templating mechanism to allow for reusable workspace definitions.
+    [*] --> NewWorkspaceDetected
+    state "Check VMDiskImages" as CheckVMDI
+    NewWorkspaceDetected --> CheckVMDI
+
+    %% Creation Path
+    CheckVMDI --> StandUpVMDIs : VMDIs Missing
+    CheckVMDI --> Provisioning : VMDIs Exist
+
+    StandUpVMDIs --> Provisioning : VMDIs Ready
+
+    Provisioning --> WorkspaceReady : Success
+
+    %% Deletion Path
+    WorkspaceReady --> WorkspaceDeleted : Delete Triggered
+
+    state "Check VMDI References" as CheckRef
+
+    WorkspaceDeleted --> CheckRef
+
+    CheckRef --> RemoveVMDIs : Last Reference
+    CheckRef --> FinalizeCleanup : Reference Exists
+
+    RemoveVMDIs --> FinalizeCleanup
+
+    FinalizeCleanup --> [*]
+```
