@@ -28,8 +28,9 @@ jobs:
       - name: versions
         id: versions
         run: |
-          echo "app_version=${{ fromJson(steps.release.outputs.version) }}" >> $GITHUB_OUTPUT
-          echo "chart_version=${{ fromJson(steps.release.outputs['chart--version']) }}" >> $GITHUB_OUTPUT
+          echo ${{ steps.release.outputs }}
+          ## echo "app_version=${{ fromJson(steps.release.outputs.version) }}" >> $GITHUB_OUTPUT
+          ## echo "chart_version=${{ fromJson(steps.release.outputs['chart--version']) }}" >> $GITHUB_OUTPUT
 
   publish-tag-app-artifact:
     if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), '.') }}
