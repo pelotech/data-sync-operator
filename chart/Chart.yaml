@@ -2,6 +2,6 @@ apiVersion: v2
 name: data-sync-operator
 description: A Helm chart to distribute the project data-sync-operator
 type: application
-version: 0.1.0
+version: 1.0.0
 appVersion: "0.1.0"
 icon: "https://example.com/icon.png"
