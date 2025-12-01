@@ -15,8 +15,8 @@ jobs:
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
-      app_version: ${{ steps.versions.outputs.app_version }}
-      chart_version: ${{ steps.versions.outputs.chart_version }}
+      app_version: ${{ steps.release.outputs['data-sync-operator--version'] }}
+      chart_version: ${{ steps.release.outputs['data-sync-operator-chart--version'] }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -24,12 +24,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-      - name: versions
-        if: ${{ fromJSON(steps.release.outputs.releases_created) }}
-        id: versions
-        run: |
-          echo "app_version=${{ fromJson(steps.release.outputs['data-sync-operator--version'] || '0.0.0') }}" >> $GITHUB_OUTPUT
-          echo "chart_version=${{ fromJson(steps.release.outputs['data-sync-operator-chart--version'] || '0.0.0') }}" >> $GITHUB_OUTPUT
 
   publish-tag-app-artifact:
     if: ${{ fromJSON(needs.release-please.outputs.releases_created) && contains(fromJSON(needs.release-please.outputs.paths_released), 'data-sync-operator') }}
