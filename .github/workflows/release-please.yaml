@@ -80,7 +80,7 @@ jobs:
         uses: appany/helm-oci-chart-releaser@v0.5.0
         with:
           name: data-sync-operator-chart
-          repository: ${{ github.repository }}
+          repository: ${{ github.repository }}/chart
           path: chart
           tag: ${{ needs.release-please.outputs.chart_version }}
           registry: ghcr.io
