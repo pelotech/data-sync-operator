@@ -1,4 +1,4 @@
-# data-sync-operator-chart
+# data-sync-operator
 
 ### version: 1.0.1<!-- x-release-please-version -->
 
