@@ -13,7 +13,7 @@ As Open Terrain (OT) environments grow in complexity, there is an increasing nee
 - **No Unified Status**: It is difficult to determine the overall health and status of a workspace. An admin must manually inspect each individual component to diagnose issues.
 
 ### **3. Proposed Architecture**
-The proposed solution is a new `Workspace` CRD and controller that builds upon the existing `VMDiskImage` controller's patterns. It introduces a high-level abstraction for an entire environment.
+The proposed solution is a new `Workspace` CRD and controller that builds upon the existing `VMDiskImage` controller's patterns.
 
 The `Workspace` CRD will serve as a blueprint for a complete, isolated environment. It will define all the necessary VMs, containers, and networking rules. The introduction of this cluster scoped resource will allow the platform team to have a single interface for OT customers to deploy workspaces to the system.
 
@@ -29,55 +29,129 @@ The `Workspace` can be in the following phases during its lifecycle.
 apiVersion: "pelotech.ot/v1alpha1"
 kind: "Workspace"
 metadata:
-  name: "data-analysis-environment-1"
+  name: "demo-workspace-1"
 spec:
-  # Defines the VMs to be included in the workspace.
-  # The controller will create a VMDiskImage resource for each entry.
-  virtualMachines:
-    - name: "database-vm"
-      vmdiskImageName: "database-vmdi"
-    - name: "analytics-vm"
-      vmdiskImageName: "analytics-vmdi"
-
-  # Defines the containers to be included in the workspace.
-  # The controller will create a Deployment for each entry.
-  containers:
-    - name: "api-server"
-      image: "my-registry/api-server:3.1.0"
-      ports:
-        - containerPort: 8080
-          protocol: TCP
-
-  # Defines networking policy for the workspace.
-  network:
-    # If true, the controller creates a NetworkPolicy to isolate all
-    # components in this workspace from other workloads in the namespace.
-
-# The operator manages this section to provide real-time status.
-status:
-  phase: "Provisioning"
-  message: "Creating resources for workspace."
-  conditions:
-    - type: "Ready"
-      status: "False"
-      lastTransitionTime: "2025-07-12T10:30:00Z"
-  # Status of individual components for easy diagnosis.
-  resourceStatus:
-    virtualMachines:
-      - name: "database-vm"
-        phase: "Succeeded"
-      - name: "analytics-vm"
-        phase: "Queued"
-    containers:
-      - name: "api-server"
-        status: "Pending"
+    vms:
+      - baseVm: ubuntu_2004_lts_en-us_x64
+        baseVmVersion: 2.1.2
+        ignoreOnDeploy: true
+        name: demo-vm
+        version: 2.1.0
+        backingVMDiskImage: demo-vmdi
+        resources:
+          cpu: '2'
+          memory: 2Gi
+        diskSize: 18Gi
+        interfaces:
+          - network: control-net
+            ipAddress: 10.10.0.161/24
+          - network: bridge-inet
+            ipAddress: 4.29.163.6/28
+          - network: bridge-edge
+            ipAddress: 172.27.11.11/28
+        ansible:
+          roles:
+            build:
+              - role: specialize
+              - role: linuxRouter
+                variables:
+                  enable_nat: true
+                  nat_out_iface_idx: 1
+            deploy:
+              - role: runtimeChecks
+    containerClusters:
+      - ignoreOnDeploy: false
+        name: demo-app
+        interfaces:
+          - network: bridge-inet
+            ipAddress: 4.29.163.7/28
+        containers:
+          - name: chef
+            image: 'ghcr.io/demo/demo-containers/demo-app:1.0.2'
+            resources:
+              cpu: 128m
+              memory: 256Mi
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+            volumeMounts:
+              - name: dnsconfig
+                containerPath: /config
+                readOnly: true
+            portMappings:
+              - containerPort: 53
+                protocol: udp
+                hostPort: 53
+      - ignoreOnDeploy: false
+        name: ansible
+        interfaces:
+          - network: control-net
+            ipAddress: 10.10.0.141/24
+        containers:
+          - name: ansible
+            image: 'ghcr.io/demo/demo-containers/ansible:2.5.14'
+            resources:
+              cpu: 384m
+              memory: 2048Mi
+            env:
+              - name: DEBUG
+                value: 'true'
+    volumes:
+      - name: monitorconfigs
+        size: 1Gi
+        localPath: /config
+      - name: dnsconfig
+        size: 1Gi
+        localPath: /demo-app-config
+    networks:
+      - name: control-net
+        cidr: 10.10.0.0/24
+      - name: capture-net
+        cidr: 10.10.1.0/24
+      - name: bridge-inet
+        cidr: 4.29.163.0/28
+        nameservers:
+          addresses:
+            - 4.29.163.7
+        rangeGateway: 4.29.163.14
+        routes:
+          - destinationNetworkCidr: 0.0.0.0/0
+            nextHopIpAddress: 4.29.163.14
+      - name: bridge-edge
+        cidr: 172.27.11.0/28
+        routes:
+          - destinationNetworkCidr: 0.0.0.0/0
+            nextHopIpAddress: 172.27.11.11
+          - destinationNetworkCidr: 172.26.0.0/15
+            nextHopIpAddress: 172.27.11.12
+        nameservers:
+          addresses:
+            - 4.29.163.7
+      - name: edge-fw
+        cidr: 172.26.5.0/28
+        routes:
+          - destinationNetworkCidr: 0.0.0.0/0
+            nextHopIpAddress: 172.26.5.11
+          - destinationNetworkCidr: 172.26.0.0/16
+            nextHopIpAddress: 172.26.5.12
+        nameservers:
+          addresses:
+            - 4.29.163.7
+      - name: range-services
+        cidr: 172.26.1.0/24
+        routes:
+          - destinationNetworkCidr: 0.0.0.0/0
+            nextHopIpAddress: 172.26.1.254
+        nameservers:
+          addresses:
+            - 172.26.1.101
 ```
+#### **3.2: The Workspace Controller**
+The Workspace Controller will orchestrate the creation and management of all resources defined in a `Workspace` manifest. Below is
+the high flow of a Workspace through the controller
 
-#### **3.3: The Workspace Controller**
-The Workspace Controller will orchestrate the creation and management of all resources defined in a `Workspace` manifest.
-
-
-### **4. End-to-End Controller Workflow**
 ```mermaid
     stateDiagram-v2
     direction TB
@@ -108,3 +182,11 @@ The Workspace Controller will orchestrate the creation and management of all res
 
     FinalizeCleanup --> [*]
 ```
+### **4: Considered alternatives**
+
+The following alternatives have been considered
+
+#### Deploying VMDiskImages prior to Workspace creation
+
+This option seems viaiable on the face however it does not resolve the issue where a OT user attempts to stand up a workspace while a VMDiskImage is syncing. This would still result in a workspace getting stuck and requiring outside intervention.
+
