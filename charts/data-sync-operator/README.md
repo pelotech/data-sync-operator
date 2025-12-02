@@ -1,8 +1,8 @@
 # data-sync-operator
 
-### version: 1.0.1<!-- x-release-please-version -->
+### version: 0.0.1<!-- x-release-please-version -->
 
-![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
+### appVersion: 0.0.1 <!-- x-release-please-version -->
 
 A Helm chart to distribute the project data-sync-operator
 
@@ -31,3 +31,4 @@ A Helm chart to distribute the project data-sync-operator
 | metrics.enable | bool | `false` |  |
 | metrics.port | int | `8443` |  |
 | rbacHelpers.enable | bool | `false` |  |
+
