@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/pelotech/data-sync-operator/compare/data-sync-operator-chart/v1.0.4...data-sync-operator-chart/v1.0.5) (2025-12-02)
+
+
+### Chores
+
+* fix var mismatch, reverted package strings in workflow checks, fix readme generation loop ([#36](https://github.com/pelotech/data-sync-operator/issues/36)) ([4cf71cc](https://github.com/pelotech/data-sync-operator/commit/4cf71cc86d6223ba6a4038dd0d520f8ce609db1b))
+
 ## [1.0.4](https://github.com/pelotech/data-sync-operator/compare/data-sync-operator-chart/v1.0.3...data-sync-operator-chart/v1.0.4) (2025-12-01)
 
 
