@@ -6,13 +6,18 @@
   "packages": {
     "chart": {
       "release-type": "helm",
-      "package-name": "data-sync-operator-chart"
+      "package-name": "data-sync-operator-chart",
+      "extra-files": ["README.md"],
+      "exclude-paths": [
+        ".github"
+      ]
     },
     ".": {
       "release-type": "go",
       "package-name": "data-sync-operator",
       "exclude-paths": [
-        "chart"
+        "chart",
+        ".github"
       ]
     }
   },
