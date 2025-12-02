@@ -24,6 +24,10 @@ The `Workspace` can be in the following phases during its lifecycle.
 - `Failed`: Something happened and we cannot recover the workspace.
 - `Ready`: The workspace has been successfully provisioned and is ready for use.
 
+When a workspace is first recognized by the Cluster it will be placed in a `Provisioning` state. While provisioning the cluster will check to see if any VMDIs required do not yet exist. Should the VMDIs not exist the controller will create them and wait on standing up the rest of the workspace until the VMDIs are ready.
+
+Once the VMDIs are ready the controller will preform the operations to stand up workspaces by creating any underlying resources. Should this step fail the workspace will be moved into a `Failed` state. When the workspace is successfully created and all sub components are reading green it will be moved into a `Ready` state.
+
 **Example `Workspace` Manifest:**
 ```yaml
 apiVersion: "pelotech.ot/v1alpha1"
@@ -190,3 +194,6 @@ The following alternatives have been considered
 
 This option seems viaiable on the face however it does not resolve the issue where a OT user attempts to stand up a workspace while a VMDiskImage is syncing. This would still result in a workspace getting stuck and requiring outside intervention.
 
+#### Usage of outside service to Record VMDI usage in workspaces
+
+This option would circumvent the need for the new CRD and Controller however would result in the duplication of state. OT should be the ultimate sources of truth when it comes to resource ownership and this introduction of an outside service may result in more indirection and issues with state incosistency.
