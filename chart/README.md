@@ -1,6 +1,6 @@
 # data-sync-operator-chart
 
-### version: 1.0.6<!-- x-release-please-version -->
+### version: 1.0.7<!-- x-release-please-version -->
 
 ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
 
