@@ -44,7 +44,7 @@ jobs:
 
       - name: Lint Helm Chart
         run: |
-          helm lint ./chart
+          helm lint ./charts/data-sync-operator
 
 # TODO: Uncomment if cert-manager is enabled
 #      - name: Install cert-manager via Helm (wait for readiness)
@@ -67,7 +67,7 @@ jobs:
 
       - name: Install Helm chart for project
         run: |
-          helm install my-release ./chart --create-namespace --namespace data-sync-operator-system
+          helm install my-release ./charts/data-sync-operator --create-namespace --namespace data-sync-operator-system
 
       - name: Check Helm release status
         run: |
