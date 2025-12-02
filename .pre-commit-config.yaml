@@ -14,7 +14,7 @@ repos:
   hooks:
     - id: helm-docs-built
       args:
-        - --chart-search-root=chart
+        - --chart-search-root=charts
 - repo: https://github.com/adrienverge/yamllint
   rev: v1.37.1
   hooks:
