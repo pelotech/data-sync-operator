@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6](https://github.com/pelotech/data-sync-operator/compare/data-sync-operator-chart/v1.0.5...data-sync-operator-chart/v1.0.6) (2025-12-02)
+
+
+### Chores
+
+* release please test ([#39](https://github.com/pelotech/data-sync-operator/issues/39)) ([48aeac5](https://github.com/pelotech/data-sync-operator/commit/48aeac5daae5aaecc53afe7f44d88042987f9d8c))
+
 ## [1.0.5](https://github.com/pelotech/data-sync-operator/compare/data-sync-operator-chart/v1.0.4...data-sync-operator-chart/v1.0.5) (2025-12-02)
 
 
