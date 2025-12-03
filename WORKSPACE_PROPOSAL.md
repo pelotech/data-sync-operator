@@ -196,4 +196,4 @@ This option seems viable on the face however it does not resolve the issue where
 
 #### Usage of outside service to Record VMDI usage in workspaces
 
-This option would circumvent the need for the new CRD and Controller however would result in the duplication of state. OT should be the ultimate sources of truth when it comes to resource ownership and this introduction of an outside service may result in more indirection and issues with state incosistency.
+This option would circumvent the need for the new CRD and Controller. However, it would result in the duplication of state. OT should be the ultimate source of truth when it comes to resource ownership and this introduction of an outside service may result in more indirection and issues with state inconsistency.
