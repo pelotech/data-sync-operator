@@ -192,7 +192,7 @@ The following alternatives have been considered
 
 #### Deploying VMDiskImages prior to Workspace creation
 
-This option seems viaiable on the face however it does not resolve the issue where a OT user attempts to stand up a workspace while a VMDiskImage is syncing. This would still result in a workspace getting stuck and requiring outside intervention.
+This option seems viable on the face however it does not resolve the issue where a OT user attempts to stand up a workspace while a VMDiskImage is syncing. This would still result in a workspace getting stuck and requiring outside intervention.
 
 #### Usage of outside service to Record VMDI usage in workspaces
 
