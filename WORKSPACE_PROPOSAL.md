@@ -10,7 +10,7 @@ As Open Terrain (OT) environments grow in complexity, there is an increasing nee
 ### 2.1 Main pain points
 - **Resource removal**: Currently it is difficult to know when old resources required to back `Workspaces` are ready to be removed. Removal of these resources could be tied to Workspace Lifecycles.
 - **No self healing**: The current approach of deploying Workspaces all at once via a helm chart results in the inability for the platform to attempt to resolve problems without outside interaction.
-- **No Unified Status**: It is difficult to determine the overall health and status of a workspace. An admin must manually inspect each individual component to diagnose issues.
+- **No Unified Management**: It is difficult to determine the overall health and status of a workspace. An admin must manually inspect each individual component to diagnose issues when things go wrong.
 
 ### **3. Proposed Architecture**
 The proposed solution is a new `Workspace` CRD and controller that builds upon the existing `VMDiskImage` controller's patterns.
@@ -197,3 +197,12 @@ This option seems viable on the face however it does not resolve the issue where
 #### Usage of outside service to Record VMDI usage in workspaces
 
 This option would circumvent the need for the new CRD and Controller. However, it would result in the duplication of state. OT should be the ultimate source of truth when it comes to resource ownership and this introduction of an outside service may result in more indirection and issues with state inconsistency.
+
+#### Moving the abstraction level down to the VM
+
+The self healing and resource removal pain points revolve primary around the lifecycle of VMs. When VMs are launched without backing data they enter a unrecoverable state and when we remove them we have no easy way to tell if the backing resources can also be removed. The team could move the level of abstraction down to just the VM level. A CR could be made to wrap our existing VM solution. A controller could then watch for this CR and check for the existence of the required VMDI, if it does not exist this controller could make them. Once the required backing data is created we can stand up our VMs as normal.  When this custom resource is removed we could check whether or not we can the VMDI and if so delete it. This approach could also be used to compose into a workspace at some point.
+
+This approach is not a complete solution. The below are unhandled issues and potential other considerations:
+- In the case that this proposed lower level CR encounters an unrecoverable error (VMDI failed to create) this would still result in a dangling Workspace and require manual intervention to clean up the Workspace.
+- Deployment of a workspace still requires deployment all component parts.
+- More layers and CRs in a potential later workspace solution
