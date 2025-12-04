@@ -12,7 +12,7 @@ A Helm chart to distribute the project data-sync-operator
 |-----|------|---------|-------------|
 | certManager.enable | bool | `false` |  |
 | crd.enable | bool | `true` |  |
-| crd.keep | bool | `true` |  |
+| crd.keep | bool | `false` |  |
 | manager.args[0] | string | `"--leader-elect"` |  |
 | manager.env | list | `[]` |  |
 | manager.image.pullPolicy | string | `"IfNotPresent"` |  |
