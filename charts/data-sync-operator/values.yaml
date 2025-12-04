@@ -52,7 +52,7 @@ rbacHelpers:
 # Custom Resource Definitions
 crd:
   enable: true  # Install CRDs with the chart
-  keep: true    # Keep CRDs when uninstalling
+  keep: false    # Keep CRDs when uninstalling
 
 # Controller metrics endpoint.
 # Enable to expose /metrics endpoint with RBAC protection.
