@@ -249,6 +249,8 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 .PHONY: generate-chart
 generate-chart: manifests
 	kubebuilder edit --plugins=helm/v2-alpha --output-dir=./
+	find charts/data-sync-operator -type f ! -name 'README.md' ! -name 'README.md.gotmpl' ! -name 'CHANGELOG.md' ! -name 'Chart.yaml' -delete
+	rsync -av --ignore-existing --remove-source-files chart/ charts/data-sync-operator
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary

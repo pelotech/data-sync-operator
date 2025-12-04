@@ -11,6 +11,7 @@ rules:
   verbs:
   - create
   - delete
+  - deletecollection
   - get
   - list
   - patch
@@ -23,6 +24,7 @@ rules:
   verbs:
   - create
   - delete
+  - deletecollection
   - get
   - list
   - patch
@@ -35,6 +37,7 @@ rules:
   verbs:
   - create
   - delete
+  - deletecollection
   - get
   - list
   - patch
@@ -45,12 +48,14 @@ rules:
   resources:
   - vmdiskimages/finalizers
   verbs:
+  - deletecollection
   - update
 - apiGroups:
   - crd.pelotech.ot
   resources:
   - vmdiskimages/status
   verbs:
+  - deletecollection
   - get
   - patch
   - update
@@ -61,6 +66,7 @@ rules:
   verbs:
   - create
   - delete
+  - deletecollection
   - get
   - list
   - patch

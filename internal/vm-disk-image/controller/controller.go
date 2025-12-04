@@ -37,14 +37,14 @@ type VMDiskImageReconciler struct {
 }
 
 // RBAC for our CRD
-// +kubebuilder:rbac:groups=crd.pelotech.ot,resources=vmdiskimages,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=crd.pelotech.ot,resources=vmdiskimages/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=crd.pelotech.ot,resources=vmdiskimages/finalizers,verbs=update
+// +kubebuilder:rbac:groups=crd.pelotech.ot,resources=vmdiskimages,verbs=get;list;watch;create;update;patch;delete;delete;deletecollection
+// +kubebuilder:rbac:groups=crd.pelotech.ot,resources=vmdiskimages/status,verbs=get;update;patch;deletecollection
+// +kubebuilder:rbac:groups=crd.pelotech.ot,resources=vmdiskimages/finalizers,verbs=update;deletecollection
 
 // RBAC to preform CRUD operations on pvcs, datavolumes and volumesnapshots
-// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cdi.kubevirt.io,resources=datavolumes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=snapshot.storage.k8s.io,resources=volumesnapshots,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete;deletecollection
+// +kubebuilder:rbac:groups=cdi.kubevirt.io,resources=datavolumes,verbs=get;list;watch;create;update;patch;delete;deletecollection
+// +kubebuilder:rbac:groups=snapshot.storage.k8s.io,resources=volumesnapshots,verbs=get;list;watch;create;update;patch;delete;deletecollection
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
