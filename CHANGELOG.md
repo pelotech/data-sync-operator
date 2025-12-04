@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/pelotech/data-sync-operator/compare/0.1.0...0.1.1) (2025-12-04)
+
+
+### Bug Fixes
+
+* give vmdi controller delete collection permission ([#52](https://github.com/pelotech/data-sync-operator/issues/52)) ([0804f83](https://github.com/pelotech/data-sync-operator/commit/0804f838c86bc487bfdae93760b265d0c225c14b))
+
 ## [0.1.0](https://github.com/pelotech/data-sync-operator/compare/0.0.1...0.1.0) (2025-12-02)
 
 
