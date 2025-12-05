@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/pelotech/data-sync-operator/compare/0.1.1...0.1.2) (2025-12-04)
+
+
+### Bug Fixes
+
+* release please recognize chart changes ([#55](https://github.com/pelotech/data-sync-operator/issues/55)) ([80588a3](https://github.com/pelotech/data-sync-operator/commit/80588a3d7d1aebc663bc098fd8c56239fa61d2cc))
+* set keep in chart to false as it is more sensible default ([#54](https://github.com/pelotech/data-sync-operator/issues/54)) ([8a27a1e](https://github.com/pelotech/data-sync-operator/commit/8a27a1e4fe2d8ee433e5e080e45f840e55895300))
+
 ## [0.1.1](https://github.com/pelotech/data-sync-operator/compare/0.1.0...0.1.1) (2025-12-04)
 
 
