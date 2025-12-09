@@ -61,7 +61,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-// GLOBAL RBAC for entire application
+// GLOBAL RBAC FOR ENTIRE APPLICATION
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // nolint:gocyclo
