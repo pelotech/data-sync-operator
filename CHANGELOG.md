@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/pelotech/data-sync-operator/compare/0.1.2...0.1.3) (2025-12-09)
+
+
+### Bug Fixes
+
+* enable event rbac ([#59](https://github.com/pelotech/data-sync-operator/issues/59)) ([b854f70](https://github.com/pelotech/data-sync-operator/commit/b854f7016903d8e99eff05b2821accd8609b6d8b))
+
 ## [0.1.2](https://github.com/pelotech/data-sync-operator/compare/0.1.1...0.1.2) (2025-12-04)
 
 
