@@ -61,6 +61,9 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+// GLOBAL RBAC for entire application
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+
 // nolint:gocyclo
 func main() {
 	coreCfg := coreconfig.LoadCoreConfigFromEnv()
