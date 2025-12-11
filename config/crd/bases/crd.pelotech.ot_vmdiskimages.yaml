@@ -21,6 +21,10 @@ spec:
       jsonPath: .status.phase
       name: Phase
       type: string
+    - description: If the referenced artifact can be found at the given URL.
+      jsonPath: .status.missingSourceArtifact
+      name: Missing Source Artifact
+      type: boolean
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -140,10 +144,15 @@ spec:
                 type: array
               failureCount:
                 type: integer
+              firstFailureTimestamp:
+                format: date-time
+                type: string
               message:
                 description: A human-readable message providing more details about
                   the current phase.
                 type: string
+              missingSourceArtifact:
+                type: boolean
               phase:
                 enum:
                 - Queued
