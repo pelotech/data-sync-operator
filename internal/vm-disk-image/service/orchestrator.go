@@ -32,11 +32,11 @@ type VMDiskImageOrchestrator interface {
 
 type Orchestrator struct {
 	client.Client
-	Recorder     record.EventRecorder
-	Provisioner  VMDiskImageProvisioner
-	RetryLimit   int
-	RetryBackoff time.Duration
-	SyncLimit    int
+	Recorder                record.EventRecorder
+	Provisioner             VMDiskImageProvisioner
+	SyncRetryLimit          int
+	SyncAttemptRetryBackoff time.Duration
+	ConcurrentSyncLimit     int
 }
 
 func (o Orchestrator) GetVMDiskImage(ctx context.Context, namespace types.NamespacedName, vmdi *crdv1.VMDiskImage) error {
@@ -106,9 +106,9 @@ func (o Orchestrator) AttemptSyncingOfResource(
 		logger.Error(err, "Failed to list syncing resources")
 		return ctrl.Result{}, err
 	}
-	if len(syncingList.Items) >= o.SyncLimit {
-		o.Recorder.Eventf(vmdi, "Normal", "WaitingToSync", "No more than %d VMDiskImages can be syncing at once. Waiting...", o.SyncLimit)
-		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
+	if len(syncingList.Items) >= o.ConcurrentSyncLimit {
+		o.Recorder.Eventf(vmdi, "Normal", "WaitingToSync", "No more than %d VMDiskImages can be syncing at once. Waiting...", o.ConcurrentSyncLimit)
+		return ctrl.Result{RequeueAfter: o.SyncAttemptRetryBackoff}, nil
 	}
 
 	err = o.Provisioner.CreateResources(ctx, vmdi)
@@ -152,7 +152,7 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 	}
 	if !isDone {
 		logger.Info("Sync is not complete. Requeuing.")
-		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
+		return ctrl.Result{RequeueAfter: o.SyncAttemptRetryBackoff}, nil
 	}
 
 	vmdi.Status.Phase = crdv1.PhaseReady
@@ -246,11 +246,11 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 	if err := o.Status().Update(ctx, vmdi); err != nil {
 		logger.Error(err, "Failed to update resource failure count")
 	}
-	if vmdi.Status.FailureCount < o.RetryLimit {
-		return ctrl.Result{RequeueAfter: o.RetryBackoff}, nil
+	if vmdi.Status.FailureCount < o.SyncRetryLimit {
+		return ctrl.Result{RequeueAfter: o.SyncAttemptRetryBackoff}, nil
 	}
 
-	o.Recorder.Eventf(vmdi, "Warning", "SyncExceededRetryCount", "The sync has failed beyond the set retry limit of %d", o.RetryLimit)
+	o.Recorder.Eventf(vmdi, "Warning", "SyncExceededRetryCount", "The sync has failed beyond the set retry limit of %d", o.SyncRetryLimit)
 	vmdi.Status.Phase = crdv1.PhaseFailed
 	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
