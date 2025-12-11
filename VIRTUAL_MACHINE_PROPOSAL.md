@@ -13,6 +13,8 @@ The second issue revolves around resource pruning. Currently it is very difficul
 
 Currently manual intervention is required to resolve the issue of a virtual machine starting without backing data. The team must first deploy the backing data required by the VM. This is often enough as the underlying implementation libraries will move the VM to a "Ready" state once the backing data is in place. The team has noticed on occasion that simply putting the required data in place is not enough and the team must "kick" underlying vm resources to "unstick" them.
 
+In regards to resource removal the team must currently cross reference existing backing data with expectations of customers for which workspaces will be launched. If a resources has no more planned usage for the customer it can safely be removed from the cluster.
+
 ### **2. Solution 1**
 The proposed solution is a new `VirtualMachine` CR and controller along with the expansion of the capabilities of  the `VMDiskImage` controller.
 
