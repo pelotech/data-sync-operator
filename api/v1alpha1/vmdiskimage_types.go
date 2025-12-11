@@ -34,6 +34,7 @@ const (
 
 // Condition Reasons
 const (
+	MissingSourceArtifact        string = "MissingSourceArtifact"
 	ReasonResourceCreationFailed string = "ResourceCreationFailed"
 	ReasonResouceUpdateFailed    string = "ResourceUpdateFailed"
 	ReasonQueued                 string = "Queued"
@@ -103,13 +104,16 @@ type VMDiskImageStatus struct {
 	// Conditions of the VMDiskImage resource.
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	FailureCount int `json:"failureCount,omitempty"`
+	FailureCount          int          `json:"failureCount,omitempty"`
+	MissingSourceArtifact bool         `json:"missingSourceArtifact,omitempty"`
+	FirstFailureTimestamp *metav1.Time `json:"firstFailureTimestamp,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=vmdiskimages,scope=Namespaced,shortName=vmdi,singular=vmdiskimage
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="The current phase of the VMDiskImage."
+// +kubebuilder:printcolumn:name="Missing Source Artifact",type="boolean",JSONPath=".status.missingSourceArtifact",description="If the referenced artifact can be found at the given URL."
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type VMDiskImage struct {
 	metav1.TypeMeta   `json:",inline"`
