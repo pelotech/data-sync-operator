@@ -107,7 +107,8 @@ type VMDiskImageStatus struct {
 	// Conditions of the VMDiskImage resource.
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	FailureCount int `json:"failureCount,omitempty"`
+	FailureCount    int          `json:"failureCount,omitempty"`
+	LastFailureTime *metav1.Time `json:"lastFailureTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
