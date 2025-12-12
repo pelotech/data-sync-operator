@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	crdv1 "pelotech/data-sync-operator/api/v1alpha1"
 	"time"
 
@@ -25,6 +26,7 @@ type VMDiskImageOrchestrator interface {
 	QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
 	AttemptSyncingOfResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
 	TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
+	AttemptResurrectionOfResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
 	DeleteResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
 	HandleResourceUpdateError(ctx context.Context, ds *crdv1.VMDiskImage, originalErr error, message string) (ctrl.Result, error)
 	HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error, message string) (ctrl.Result, error)
@@ -32,11 +34,13 @@ type VMDiskImageOrchestrator interface {
 
 type Orchestrator struct {
 	client.Client
-	Recorder                record.EventRecorder
-	Provisioner             VMDiskImageProvisioner
-	SyncRetryLimit          int
-	SyncAttemptRetryBackoff time.Duration
-	ConcurrentSyncLimit     int
+	Recorder                    record.EventRecorder
+	Provisioner                 VMDiskImageProvisioner
+	SyncRetryLimit              int
+	SyncAttemptRetryBackoff     time.Duration
+	ConcurrentSyncLimit         int
+	ResurrectionTimeout         time.Duration
+	ResurrectionBackoffDuration time.Duration
 }
 
 func (o Orchestrator) GetVMDiskImage(ctx context.Context, namespace types.NamespacedName, vmdi *crdv1.VMDiskImage) error {
@@ -172,6 +176,26 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 	return ctrl.Result{}, nil
 }
 
+func (o Orchestrator) AttemptResurrectionOfResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
+	isRetryable :=
+		vmdi.Status.Phase == crdv1.PhaseFailed &&
+			time.Since(vmdi.Status.FirstFailureTimestamp.Time) > o.ResurrectionTimeout &&
+			vmdi.Status.MissingSourceArtifact
+
+	if !isRetryable {
+		return ctrl.Result{}, nil
+	}
+
+	vmdi.Status.MissingSourceArtifact = false
+	vmdi.Status.FailureCount = 0
+	vmdi.Status.Phase = ""
+	if err := o.Status().Update(ctx, vmdi); err != nil {
+		return o.HandleResourceUpdateError(ctx, vmdi, err, "failed to reset VMDI on resurrection")
+	}
+
+	return ctrl.Result{RequeueAfter: o.ResurrectionBackoffDuration}, nil
+}
+
 func (o Orchestrator) DeleteResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
 
@@ -250,6 +274,12 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 		return ctrl.Result{RequeueAfter: o.SyncAttemptRetryBackoff}, nil
 	}
 
+	if errors.Is(originalErr, ErrMissingSourceArtifact) {
+		vmdi.Status.MissingSourceArtifact = true
+	}
+
+	now := metav1.Now()
+	vmdi.Status.FirstFailureTimestamp = &now
 	o.Recorder.Eventf(vmdi, "Warning", "SyncExceededRetryCount", "The sync has failed beyond the set retry limit of %d", o.SyncRetryLimit)
 	vmdi.Status.Phase = crdv1.PhaseFailed
 	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()

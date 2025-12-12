@@ -93,7 +93,9 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return r.AttemptSyncingOfResource(ctx, &VMDiskImage)
 	case crdv1.PhaseSyncing:
 		return r.TransitonFromSyncing(ctx, &VMDiskImage)
-	case crdv1.PhaseReady, crdv1.PhaseFailed:
+	case crdv1.PhaseFailed:
+		return r.AttemptResurrectionOfResource(ctx, &VMDiskImage)
+	case crdv1.PhaseReady:
 		return ctrl.Result{}, nil
 	default:
 		logger.Error(nil, "Unknown phase detected", "Phase", currentPhase)
@@ -118,12 +120,14 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		RetryLimit:        config.SyncRetryLimit,
 	}
 	orchestrator := vmdi.Orchestrator{
-		Client:                  client,
-		Recorder:                mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
-		Provisioner:             vmdiProvisioner,
-		SyncRetryLimit:          config.SyncRetryLimit,
-		SyncAttemptRetryBackoff: config.SyncRetryBackoffDuration,
-		ConcurrentSyncLimit:     config.Concurrency,
+		Client:                      client,
+		Recorder:                    mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
+		Provisioner:                 vmdiProvisioner,
+		SyncRetryLimit:              config.SyncRetryLimit,
+		SyncAttemptRetryBackoff:     config.SyncRetryBackoffDuration,
+		ConcurrentSyncLimit:         config.Concurrency,
+		ResurrectionTimeout:         config.ResurrectionTimeout,
+		ResurrectionBackoffDuration: config.ResurrectionBackoffDuration,
 	}
 	reconciler := &VMDiskImageReconciler{
 		Scheme:                  mgr.GetScheme(),
