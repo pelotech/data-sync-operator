@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
 	"math"
 	crdv1 "pelotech/data-sync-operator/api/v1alpha1"
 	"time"
 
 	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	crutils "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -176,15 +178,16 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 
 func (o Orchestrator) AttemptRetry(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
 	syncDeadline := metav1.NewTime(vmdi.CreationTimestamp.Add(o.MaxSyncTime))
+	exceededSyncDeadline := syncDeadline.Before(ptr.To(metav1.Now()))
 
 	// leave it in a failed state
-	if syncDeadline.After(time.Now()) {
+	if exceededSyncDeadline {
 		return ctrl.Result{}, nil
 	}
 
 	vmdi.Status.Phase = ""
 	if err := o.Status().Update(ctx, vmdi); err != nil {
-		return o.HandleResourceUpdateError(ctx, vmdi, err, "failed to reset VMDI on resurrection")
+		return o.HandleResourceUpdateError(ctx, vmdi, err, "failed to reset VMDI on retry")
 	}
 
 	// Expontential retry
@@ -267,16 +270,23 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 	o.Recorder.Eventf(vmdi, "Warning", "SyncErrorOccurred", originalErr.Error())
 
 	vmdi.Status.FailureCount += 1
-	if err := o.Status().Update(ctx, vmdi); err != nil {
-		logger.Error(err, "Failed to update resource failure count")
-	}
-
 	vmdi.Status.Phase = crdv1.PhaseFailed
 	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
+
+	reason := crdv1.ReasonUnknownSyncFailure
+	switch {
+	case errors.Is(originalErr, ErrSyncAttemptExceedsMaxDuration):
+		reason = crdv1.ReasonSyncAttemptDurationExceeded
+	case errors.Is(originalErr, ErrSyncAttemptExceedsRetries):
+		reason = crdv1.ReasonRetryLimitExceeded
+	case errors.Is(originalErr, ErrMissingSourceArtifact):
+		reason = crdv1.ReasonMissingSourceArtifact
+	}
+
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
 		Type:    crdv1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  crdv1.ReasonRetryLimitExceeded,
+		Reason:  reason,
 		Message: originalErr.Error(),
 	})
 

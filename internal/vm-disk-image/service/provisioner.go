@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	crdv1 "pelotech/data-sync-operator/api/v1alpha1"
+	"strings"
 	"time"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
@@ -30,6 +32,10 @@ type K8sVMDIProvisioner struct {
 }
 
 const dataVolumeDonePhase = "Succeeded"
+
+var ErrMissingSourceArtifact = errors.New("the requested artifact does not exist")
+var ErrSyncAttemptExceedsRetries = errors.New("the sync attempt has failed beyond the retry limit")
+var ErrSyncAttemptExceedsMaxDuration = errors.New("the sync attempt has lasted beyond its max duration")
 
 // Create resources for a given VMDiskImage. Stops creating them if
 // a single resource fails to create. Does not cleanup after itself
@@ -173,7 +179,7 @@ func (p K8sVMDIProvisioner) ResourcesHaveErrors(
 		timeSyncing = now.Sub(syncStartTime)
 	}
 	if timeSyncing > p.MaxSyncAttemptDuration {
-		return fmt.Errorf("the VMDiskImage %s has been syncing longer than the allowed sync time", vmdi.Name)
+		return ErrSyncAttemptExceedsMaxDuration
 	}
 
 	searchLabels := getLabelsToMatch(vmdi)
@@ -187,9 +193,17 @@ func (p K8sVMDIProvisioner) ResourcesHaveErrors(
 	}
 
 	for _, dv := range dataVolumeList.Items {
-		if dv.Status.RestartCount >= int32(p.MaxRetryPerAttempt) {
-			return fmt.Errorf("a datavolume has restarted more than the max for a sync")
+		for _, cond := range dv.Status.Conditions {
+			missingSourceArtifact := strings.Contains(cond.Message, "404") || strings.Contains(strings.ToLower(cond.Message), "not found")
+			if missingSourceArtifact {
+				return ErrMissingSourceArtifact
+			}
 		}
+
+		if dv.Status.RestartCount >= int32(p.MaxRetryPerAttempt) {
+			return ErrSyncAttemptExceedsRetries
+		}
+
 	}
 
 	return nil

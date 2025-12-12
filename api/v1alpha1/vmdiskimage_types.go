@@ -34,12 +34,15 @@ const (
 
 // Condition Reasons
 const (
-	ReasonResourceCreationFailed string = "ResourceCreationFailed"
-	ReasonResouceUpdateFailed    string = "ResourceUpdateFailed"
-	ReasonQueued                 string = "Queued"
-	ReasonSyncing                string = "Syncing"
-	ReasonRetryLimitExceeded     string = "RetryLimitExceeded"
-	ReasonSynced                 string = "Synced"
+	ReasonResourceCreationFailed      string = "ResourceCreationFailed"
+	ReasonResouceUpdateFailed         string = "ResourceUpdateFailed"
+	ReasonQueued                      string = "Queued"
+	ReasonSyncing                     string = "Syncing"
+	ReasonRetryLimitExceeded          string = "RetryLimitExceeded"
+	ReasonMissingSourceArtifact       string = "MissingSourceArtifact"
+	ReasonSyncAttemptDurationExceeded string = "SyncAttemptDurationExceeded"
+	ReasonUnknownSyncFailure          string = "UnknownSyncFailure"
+	ReasonSynced                      string = "Synced"
 )
 
 // CRD phases
