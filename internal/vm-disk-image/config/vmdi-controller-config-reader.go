@@ -9,7 +9,7 @@ const (
 	defaultConcurrency            = 10 // TODO: We will need to tune this default
 	defaultMaxBackoffDelay        = 1 * time.Hour
 	defaultMaxSyncDuration        = 12 * time.Hour
-	defaultMaxSyncAttemptRetry    = 3
+	defaultMaxSyncAttemptRetries  = 3
 	defaultMaxSyncAttemptDuration = 1 * time.Hour
 )
 
@@ -31,13 +31,13 @@ func LoadVMDIControllerConfigFromEnv() VMDiskImageControllerConfig {
 	maxBackoffDelay := corecfg.GetDurationEnvOrDefault("MAX_SYNC_RETRY_BACKOFF_DURATION", defaultMaxBackoffDelay)
 
 	// How long we will try to run a sync before we fail it forever.
-	maxSyncDuration := corecfg.GetDurationEnvOrDefault("MAX_SYNC_RETRY_BACKOFF_DURATION", defaultMaxSyncDuration)
+	maxSyncDuration := corecfg.GetDurationEnvOrDefault("MAX_SYNC_DURATION", defaultMaxSyncDuration)
 
 	// How long we will let a VMDI sit in syncing status.
 	maxAttemptDuration := corecfg.GetDurationEnvOrDefault("MAX_SYNC_ATTEMPT_DURATION", defaultMaxSyncAttemptDuration)
 
 	// How many times we will retry on a given attempt.
-	maxRetryPerAttempt := corecfg.GetIntEnvOrDefault("MAX_SYNC_ATTEMPT_DURATION", defaultMaxSyncAttemptRetry)
+	maxRetryPerAttempt := corecfg.GetIntEnvOrDefault("MAX_SYNC_ATTEMPT_RETRIES", defaultMaxSyncAttemptRetries)
 
 	return VMDiskImageControllerConfig{
 		Concurrency:            concurrency,
