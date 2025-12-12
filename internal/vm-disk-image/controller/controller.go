@@ -93,9 +93,9 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return r.AttemptSyncingOfResource(ctx, &VMDiskImage)
 	case crdv1.PhaseSyncing:
 		return r.TransitonFromSyncing(ctx, &VMDiskImage)
-	case crdv1.PhaseFailed:
+	case crdv1.PhaseRetryableFailure:
 		return r.AttemptRetry(ctx, &VMDiskImage)
-	case crdv1.PhaseReady:
+	case crdv1.PhaseReady, crdv1.PhaseFailed:
 		return ctrl.Result{}, nil
 	default:
 		logger.Error(nil, "Unknown phase detected", "Phase", currentPhase)

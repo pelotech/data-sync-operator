@@ -180,17 +180,20 @@ func (o Orchestrator) AttemptRetry(ctx context.Context, vmdi *crdv1.VMDiskImage)
 	syncDeadline := metav1.NewTime(vmdi.CreationTimestamp.Add(o.MaxSyncTime))
 	exceededSyncDeadline := syncDeadline.Before(ptr.To(metav1.Now()))
 
-	// leave it in a failed state
+	// Fail forever if we're past the deadline
 	if exceededSyncDeadline {
-		return ctrl.Result{}, nil
+		vmdi.Status.Phase = crdv1.PhaseFailed
+		vmdi.Status.Message = "Exceeded overall sync retry window. Failed Permanently"
+	} else {
+		vmdi.Status.Phase = ""
+		vmdi.Status.Message = ""
 	}
 
-	vmdi.Status.Phase = ""
 	if err := o.Status().Update(ctx, vmdi); err != nil {
 		return o.HandleResourceUpdateError(ctx, vmdi, err, "failed to reset VMDI on retry")
 	}
 
-	// Expontential retry
+	// Exponential retry
 	var backoffInterval time.Duration
 	nextBackoffMinutes := int(math.Floor(math.Pow(3, float64(vmdi.Status.FailureCount))))
 	nextBackoffDuration := time.Duration(nextBackoffMinutes) * time.Minute
@@ -220,7 +223,7 @@ func (o Orchestrator) HandleResourceUpdateError(
 	logger.Error(originalErr, message)
 
 	// Mark the resource as Failed
-	vmdi.Status.Phase = crdv1.PhaseFailed
+	vmdi.Status.Phase = crdv1.PhaseRetryableFailure
 	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
 		Type:    crdv1.ConditionTypeReady,
@@ -242,7 +245,7 @@ func (o Orchestrator) HandleResourceCreationError(ctx context.Context, vmdi *crd
 	logger.Error(originalErr, "Failed to create a resource.")
 
 	o.Recorder.Eventf(vmdi, "Warning", "ResourceCreationFailed", "Failed to create resources.")
-	vmdi.Status.Phase = crdv1.PhaseFailed
+	vmdi.Status.Phase = crdv1.PhaseRetryableFailure
 	vmdi.Status.Message = "Failed while creating resources: " + originalErr.Error()
 	meta.SetStatusCondition(&vmdi.Status.Conditions, metav1.Condition{
 		Type:    crdv1.ConditionTypeReady,
@@ -270,7 +273,7 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 	o.Recorder.Eventf(vmdi, "Warning", "SyncErrorOccurred", originalErr.Error())
 
 	vmdi.Status.FailureCount += 1
-	vmdi.Status.Phase = crdv1.PhaseFailed
+	vmdi.Status.Phase = crdv1.PhaseRetryableFailure
 	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
 
 	reason := crdv1.ReasonUnknownSyncFailure
