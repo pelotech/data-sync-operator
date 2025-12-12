@@ -158,6 +158,7 @@ spec:
                 - Syncing
                 - Ready
                 - Failed
+                - RetryableFailure
                 type: string
             required:
             - phase
