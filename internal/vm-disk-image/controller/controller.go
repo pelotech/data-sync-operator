@@ -77,11 +77,7 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	resourceHasFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
 	if resourceHasFinalizer {
-		err := r.AddControllerFinalizer(ctx, &VMDiskImage)
-		if err != nil {
-			return r.HandleResourceUpdateError(ctx, &VMDiskImage, err, "Failed to add finalizer to our resource")
-		}
-
+		return r.AddControllerFinalizer(ctx, &VMDiskImage)
 	}
 
 	currentPhase := VMDiskImage.Status.Phase
@@ -120,11 +116,12 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		MaxRetryPerAttempt:     config.MaxSyncAttemptRetry,
 	}
 	orchestrator := vmdi.Orchestrator{
-		Client:                client,
-		Recorder:              mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
-		Provisioner:           vmdiProvisioner,
-		MaxSyncAttemptBackoff: config.MaxBackoffDelay,
-		ConcurrentSyncLimit:   config.Concurrency,
+		Client:              client,
+		Recorder:            mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
+		Provisioner:         vmdiProvisioner,
+		MaxRetryBackoff:     config.MaxBackoffDelay,
+		MaxSyncTime:         config.MaxSyncDuration,
+		ConcurrentSyncLimit: config.Concurrency,
 	}
 	reconciler := &VMDiskImageReconciler{
 		Scheme:                  mgr.GetScheme(),

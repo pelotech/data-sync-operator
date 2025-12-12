@@ -22,7 +22,7 @@ import (
 
 type VMDiskImageOrchestrator interface {
 	GetVMDiskImage(ctx context.Context, namespace types.NamespacedName, vmdi *crdv1.VMDiskImage) error
-	AddControllerFinalizer(ctx context.Context, vmdi *crdv1.VMDiskImage) error
+	AddControllerFinalizer(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
 	IndexVMDiskImageByPhase(rawObj client.Object) []string
 	ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error)
 	QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
@@ -30,27 +30,30 @@ type VMDiskImageOrchestrator interface {
 	TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
 	AttemptRetry(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
 	DeleteResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error)
-	HandleResourceUpdateError(ctx context.Context, ds *crdv1.VMDiskImage, originalErr error, message string) (ctrl.Result, error)
-	HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskImage, originalErr error, message string) (ctrl.Result, error)
 }
 
 type Orchestrator struct {
 	client.Client
-	Recorder              record.EventRecorder
-	Provisioner           VMDiskImageProvisioner
-	MaxSyncAttemptBackoff time.Duration
-	MaxSyncTime           time.Duration
-	ConcurrentSyncLimit   int
+	Recorder            record.EventRecorder
+	Provisioner         VMDiskImageProvisioner
+	MaxRetryBackoff     time.Duration
+	MaxSyncTime         time.Duration
+	ConcurrentSyncLimit int
 }
 
 func (o Orchestrator) GetVMDiskImage(ctx context.Context, namespace types.NamespacedName, vmdi *crdv1.VMDiskImage) error {
 	return o.Get(ctx, namespace, vmdi)
 }
 
-func (o Orchestrator) AddControllerFinalizer(ctx context.Context, vmdi *crdv1.VMDiskImage) error {
+func (o Orchestrator) AddControllerFinalizer(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
 	crutils.AddFinalizer(vmdi, crdv1.VMDiskImageFinalizer)
 
-	return o.Update(ctx, vmdi)
+	err := o.Update(ctx, vmdi)
+	if err != nil {
+		return o.HandleResourceUpdateError(ctx, vmdi, err, "Failed to add finalizer to our resource")
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func (o Orchestrator) ListVMDiskImagesByPhase(ctx context.Context, phase string) (*crdv1.VMDiskImageList, error) {
@@ -96,7 +99,7 @@ func (o Orchestrator) QueueResourceCreation(ctx context.Context, vmdi *crdv1.VMD
 
 	o.Recorder.Eventf(vmdi, "Normal", "Queued", "Resource successfully queued for sync orchestration")
 
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil
 }
 
 func (o Orchestrator) AttemptSyncingOfResource(
@@ -112,7 +115,7 @@ func (o Orchestrator) AttemptSyncingOfResource(
 	}
 	if len(syncingList.Items) >= o.ConcurrentSyncLimit {
 		o.Recorder.Eventf(vmdi, "Normal", "WaitingToSync", "No more than %d VMDiskImages can be syncing at once. Waiting...", o.ConcurrentSyncLimit)
-		return ctrl.Result{RequeueAfter: o.MaxSyncAttemptBackoff}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	err = o.Provisioner.CreateResources(ctx, vmdi)
@@ -145,7 +148,6 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 	// Check if there is an error occurring in the sync
 	syncError := o.Provisioner.ResourcesHaveErrors(ctx, vmdi)
 	if syncError != nil {
-		logger.Error(syncError, "A sync error has occurred.")
 		return o.HandleSyncError(ctx, vmdi, syncError, "A error has occurred while syncing")
 	}
 
@@ -178,28 +180,34 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 
 func (o Orchestrator) AttemptRetry(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
 	syncDeadline := metav1.NewTime(vmdi.CreationTimestamp.Add(o.MaxSyncTime))
-	exceededSyncDeadline := syncDeadline.Before(ptr.To(metav1.Now()))
+	exceededSyncDeadline := metav1.Now().After(syncDeadline.Time)
 
 	// Fail forever if we're past the deadline
 	if exceededSyncDeadline {
 		vmdi.Status.Phase = crdv1.PhaseFailed
 		vmdi.Status.Message = "Exceeded overall sync retry window. Failed Permanently"
-	} else {
-		vmdi.Status.Phase = ""
-		vmdi.Status.Message = ""
-	}
 
-	if err := o.Status().Update(ctx, vmdi); err != nil {
-		return o.HandleResourceUpdateError(ctx, vmdi, err, "failed to reset VMDI on retry")
+		if err := o.Status().Update(ctx, vmdi); err != nil {
+			return o.HandleResourceUpdateError(ctx, vmdi, err, "failed to reset VMDI on retry")
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	// Exponential retry
 	var backoffInterval time.Duration
 	nextBackoffMinutes := int(math.Floor(math.Pow(3, float64(vmdi.Status.FailureCount))))
 	nextBackoffDuration := time.Duration(nextBackoffMinutes) * time.Minute
-	backoffInterval = min(nextBackoffDuration, o.MaxSyncAttemptBackoff)
+	backoffInterval = min(nextBackoffDuration, o.MaxRetryBackoff)
+	timeSinceFailure := time.Since(vmdi.Status.LastFailureTime.Time)
+	// If we haven't waited as long as we need to backoff and requeue
+	if timeSinceFailure < backoffInterval {
+		remaingWaitTime := backoffInterval - timeSinceFailure
+		return ctrl.Result{RequeueAfter: remaingWaitTime}, nil
+	}
 
-	return ctrl.Result{RequeueAfter: backoffInterval}, nil
+	return o.QueueResourceCreation(ctx, vmdi)
+
 }
 
 func (o Orchestrator) DeleteResource(ctx context.Context, vmdi *crdv1.VMDiskImage) (ctrl.Result, error) {
@@ -274,6 +282,7 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 
 	vmdi.Status.FailureCount += 1
 	vmdi.Status.Phase = crdv1.PhaseRetryableFailure
+	vmdi.Status.LastFailureTime = ptr.To(metav1.Now())
 	vmdi.Status.Message = "An error occurred during reconciliation: " + originalErr.Error()
 
 	reason := crdv1.ReasonUnknownSyncFailure
@@ -302,5 +311,5 @@ func (o Orchestrator) HandleSyncError(ctx context.Context, vmdi *crdv1.VMDiskIma
 		logger.Error(err, "Failed to teardown resources.")
 	}
 
-	return ctrl.Result{}, originalErr
+	return ctrl.Result{}, nil
 }
