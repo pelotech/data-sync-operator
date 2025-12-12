@@ -156,7 +156,7 @@ func (o Orchestrator) TransitonFromSyncing(ctx context.Context, vmdi *crdv1.VMDi
 	}
 	if !isDone {
 		logger.Info("Sync is not complete. Requeuing.")
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	vmdi.Status.Phase = crdv1.PhaseReady
