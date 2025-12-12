@@ -144,15 +144,10 @@ spec:
                 type: array
               failureCount:
                 type: integer
-              firstFailureTimestamp:
-                format: date-time
-                type: string
               message:
                 description: A human-readable message providing more details about
                   the current phase.
                 type: string
-              missingSourceArtifact:
-                type: boolean
               phase:
                 enum:
                 - Queued
