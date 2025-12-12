@@ -105,7 +105,6 @@ type VMDiskImageStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	FailureCount          int          `json:"failureCount,omitempty"`
-	MissingSourceArtifact bool         `json:"missingSourceArtifact,omitempty"`
 	FirstFailureTimestamp *metav1.Time `json:"firstFailureTimestamp,omitempty"`
 }
 

@@ -94,7 +94,7 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	case crdv1.PhaseSyncing:
 		return r.TransitonFromSyncing(ctx, &VMDiskImage)
 	case crdv1.PhaseFailed:
-		return r.AttemptResurrectionOfResource(ctx, &VMDiskImage)
+		return r.AttemptRetry(ctx, &VMDiskImage)
 	case crdv1.PhaseReady:
 		return ctrl.Result{}, nil
 	default:
@@ -114,20 +114,17 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	resourceGenerator := &vmdi.Generator{}
 	vmdiProvisioner := vmdi.K8sVMDIProvisioner{
-		Client:            client,
-		ResourceGenerator: resourceGenerator,
-		MaxSyncDuration:   config.MaxSyncDuration,
-		RetryLimit:        config.SyncRetryLimit,
+		Client:                 client,
+		ResourceGenerator:      resourceGenerator,
+		MaxSyncAttemptDuration: config.MaxSyncAttemptDuration,
+		MaxRetryPerAttempt:     config.MaxSyncAttemptRetry,
 	}
 	orchestrator := vmdi.Orchestrator{
-		Client:                      client,
-		Recorder:                    mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
-		Provisioner:                 vmdiProvisioner,
-		SyncRetryLimit:              config.SyncRetryLimit,
-		SyncAttemptRetryBackoff:     config.SyncRetryBackoffDuration,
-		ConcurrentSyncLimit:         config.Concurrency,
-		ResurrectionTimeout:         config.ResurrectionTimeout,
-		ResurrectionBackoffDuration: config.ResurrectionBackoffDuration,
+		Client:                client,
+		Recorder:              mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
+		Provisioner:           vmdiProvisioner,
+		MaxSyncAttemptBackoff: config.MaxBackoffDelay,
+		ConcurrentSyncLimit:   config.Concurrency,
 	}
 	reconciler := &VMDiskImageReconciler{
 		Scheme:                  mgr.GetScheme(),
