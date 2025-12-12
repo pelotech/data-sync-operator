@@ -47,10 +47,11 @@ const (
 
 // CRD phases
 const (
-	PhaseQueued  string = "Queued"
-	PhaseSyncing string = "Syncing"
-	PhaseReady   string = "Ready"
-	PhaseFailed  string = "Failed"
+	PhaseQueued           string = "Queued"
+	PhaseSyncing          string = "Syncing"
+	PhaseReady            string = "Ready"
+	PhaseRetryableFailure string = "RetryableFailure"
+	PhaseFailed           string = "Failed"
 )
 
 // VMDiskImage Labels
@@ -97,7 +98,7 @@ type VMDiskImageStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// +kubebuilder:validation:Enum=Queued;Syncing;Ready;Failed
+	// +kubebuilder:validation:Enum=Queued;Syncing;Ready;Failed;RetryableFailure
 	Phase string `json:"phase"`
 
 	// A human-readable message providing more details about the current phase.
