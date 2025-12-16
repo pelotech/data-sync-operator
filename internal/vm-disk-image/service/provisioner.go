@@ -28,7 +28,7 @@ type K8sVMDIProvisioner struct {
 	client.Client
 	ResourceGenerator      VMDIResourceGenerator
 	MaxSyncAttemptDuration time.Duration
-	MaxRetryPerAttempt     int
+	MaxSyncAttemptRetries  int
 }
 
 const dataVolumeDonePhase = "Succeeded"
@@ -200,7 +200,7 @@ func (p K8sVMDIProvisioner) ResourcesHaveErrors(
 			}
 		}
 
-		if dv.Status.RestartCount >= int32(p.MaxRetryPerAttempt) {
+		if dv.Status.RestartCount >= int32(p.MaxSyncAttemptRetries) {
 			return ErrSyncAttemptExceedsRetries
 		}
 
