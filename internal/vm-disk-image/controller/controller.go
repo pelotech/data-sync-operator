@@ -75,8 +75,8 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return r.VMDiskImageOrchestrator.DeleteResource(ctx, &VMDiskImage)
 	}
 
-	resourceHasFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
-	if resourceHasFinalizer {
+	resourceMissingFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
+	if resourceMissingFinalizer {
 		return r.AddControllerFinalizer(ctx, &VMDiskImage)
 	}
 
