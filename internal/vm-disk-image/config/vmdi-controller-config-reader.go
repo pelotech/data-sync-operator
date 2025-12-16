@@ -37,13 +37,13 @@ func LoadVMDIControllerConfigFromEnv() VMDiskImageControllerConfig {
 	maxAttemptDuration := corecfg.GetDurationEnvOrDefault("MAX_SYNC_ATTEMPT_DURATION", defaultMaxSyncAttemptDuration)
 
 	// How many times we will retry on a given attempt.
-	maxRetryPerAttempt := corecfg.GetIntEnvOrDefault("MAX_SYNC_ATTEMPT_RETRIES", defaultMaxSyncAttemptRetries)
+	maxRetriesPerAttempt := corecfg.GetIntEnvOrDefault("MAX_SYNC_ATTEMPT_RETRIES", defaultMaxSyncAttemptRetries)
 
 	return VMDiskImageControllerConfig{
 		Concurrency:            concurrency,
 		MaxBackoffDelay:        maxBackoffDelay,
 		MaxSyncAttemptDuration: maxAttemptDuration,
-		MaxSyncAttemptRetry:    maxRetryPerAttempt,
+		MaxSyncAttemptRetry:    maxRetriesPerAttempt,
 		MaxSyncDuration:        maxSyncDuration,
 	}
 }
