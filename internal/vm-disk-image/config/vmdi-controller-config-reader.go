@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	defaultConcurrency            = 10 // TODO: We will need to tune this default
+	defaultConcurrency            = 5 // TODO: We will need to tune this default
 	defaultMaxBackoffDelay        = 1 * time.Hour
 	defaultMaxSyncDuration        = 12 * time.Hour
 	defaultMaxSyncAttemptRetries  = 3
@@ -25,7 +25,7 @@ type VMDiskImageControllerConfig struct {
 // Locally this is your "env" and in production these values will come from a configmap
 func LoadVMDIControllerConfigFromEnv() VMDiskImageControllerConfig {
 	// The max amount of VMDIs we can have syncing at one time.
-	concurrency := corecfg.GetIntEnvOrDefault("VMDI_SYNC_CONCURRENCY", defaultConcurrency)
+	concurrency := corecfg.GetIntEnvOrDefault("MAX_VMDI_SYNC_CONCURRENCY", defaultConcurrency)
 
 	// The longest we will ever wait to retry.
 	maxBackoffDelay := corecfg.GetDurationEnvOrDefault("MAX_SYNC_RETRY_BACKOFF_DURATION", defaultMaxBackoffDelay)
