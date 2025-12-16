@@ -113,7 +113,7 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Client:                 client,
 		ResourceGenerator:      resourceGenerator,
 		MaxSyncAttemptDuration: config.MaxSyncAttemptDuration,
-		MaxRetryPerAttempt:     config.MaxSyncAttemptRetry,
+		MaxSyncAttemptRetries:  config.MaxSyncAttemptRetries,
 	}
 	orchestrator := vmdi.Orchestrator{
 		Client:              client,
