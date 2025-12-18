@@ -75,13 +75,9 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return r.VMDiskImageOrchestrator.DeleteResource(ctx, &VMDiskImage)
 	}
 
-	resourceHasFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
-	if resourceHasFinalizer {
-		err := r.AddControllerFinalizer(ctx, &VMDiskImage)
-		if err != nil {
-			return r.HandleResourceUpdateError(ctx, &VMDiskImage, err, "Failed to add finalizer to our resource")
-		}
-
+	resourceMissingFinalizer := !crutils.ContainsFinalizer(&VMDiskImage, crdv1.VMDiskImageFinalizer)
+	if resourceMissingFinalizer {
+		return r.AddControllerFinalizer(ctx, &VMDiskImage)
 	}
 
 	currentPhase := VMDiskImage.Status.Phase
@@ -93,6 +89,8 @@ func (r *VMDiskImageReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return r.AttemptSyncingOfResource(ctx, &VMDiskImage)
 	case crdv1.PhaseSyncing:
 		return r.TransitonFromSyncing(ctx, &VMDiskImage)
+	case crdv1.PhaseRetryableFailure:
+		return r.AttemptRetry(ctx, &VMDiskImage)
 	case crdv1.PhaseReady, crdv1.PhaseFailed:
 		return ctrl.Result{}, nil
 	default:
@@ -112,18 +110,18 @@ func (r *VMDiskImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	resourceGenerator := &vmdi.Generator{}
 	vmdiProvisioner := vmdi.K8sVMDIProvisioner{
-		Client:            client,
-		ResourceGenerator: resourceGenerator,
-		MaxSyncDuration:   config.MaxSyncDuration,
-		RetryLimit:        config.RetryLimit,
+		Client:                 client,
+		ResourceGenerator:      resourceGenerator,
+		MaxSyncAttemptDuration: config.MaxSyncAttemptDuration,
+		MaxSyncAttemptRetries:  config.MaxSyncAttemptRetries,
 	}
 	orchestrator := vmdi.Orchestrator{
-		Client:       client,
-		Recorder:     mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
-		Provisioner:  vmdiProvisioner,
-		RetryLimit:   config.RetryLimit,
-		RetryBackoff: config.RetryBackoffDuration,
-		SyncLimit:    config.Concurrency,
+		Client:              client,
+		Recorder:            mgr.GetEventRecorderFor(crdv1.VMDiskImageControllerName),
+		Provisioner:         vmdiProvisioner,
+		MaxRetryBackoff:     config.MaxBackoffDelay,
+		MaxSyncTime:         config.MaxSyncDuration,
+		ConcurrentSyncLimit: config.Concurrency,
 	}
 	reconciler := &VMDiskImageReconciler{
 		Scheme:                  mgr.GetScheme(),

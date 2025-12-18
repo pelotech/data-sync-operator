@@ -34,20 +34,24 @@ const (
 
 // Condition Reasons
 const (
-	ReasonResourceCreationFailed string = "ResourceCreationFailed"
-	ReasonResouceUpdateFailed    string = "ResourceUpdateFailed"
-	ReasonQueued                 string = "Queued"
-	ReasonSyncing                string = "Syncing"
-	ReasonRetryLimitExceeded     string = "RetryLimitExceeded"
-	ReasonSynced                 string = "Synced"
+	ReasonResourceCreationFailed      string = "ResourceCreationFailed"
+	ReasonResouceUpdateFailed         string = "ResourceUpdateFailed"
+	ReasonQueued                      string = "Queued"
+	ReasonSyncing                     string = "Syncing"
+	ReasonRetryLimitExceeded          string = "RetryLimitExceeded"
+	ReasonMissingSourceArtifact       string = "MissingSourceArtifact"
+	ReasonSyncAttemptDurationExceeded string = "SyncAttemptDurationExceeded"
+	ReasonUnknownSyncFailure          string = "UnknownSyncFailure"
+	ReasonSynced                      string = "Synced"
 )
 
 // CRD phases
 const (
-	PhaseQueued  string = "Queued"
-	PhaseSyncing string = "Syncing"
-	PhaseReady   string = "Ready"
-	PhaseFailed  string = "Failed"
+	PhaseQueued           string = "Queued"
+	PhaseSyncing          string = "Syncing"
+	PhaseReady            string = "Ready"
+	PhaseRetryableFailure string = "RetryableFailure"
+	PhaseFailed           string = "Failed"
 )
 
 // VMDiskImage Labels
@@ -94,7 +98,7 @@ type VMDiskImageStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// +kubebuilder:validation:Enum=Queued;Syncing;Ready;Failed
+	// +kubebuilder:validation:Enum=Queued;Syncing;Ready;Failed;RetryableFailure
 	Phase string `json:"phase"`
 
 	// A human-readable message providing more details about the current phase.
@@ -103,7 +107,8 @@ type VMDiskImageStatus struct {
 	// Conditions of the VMDiskImage resource.
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	FailureCount int `json:"failureCount,omitempty"`
+	FailureCount    int          `json:"failureCount,omitempty"`
+	LastFailureTime *metav1.Time `json:"lastFailureTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
