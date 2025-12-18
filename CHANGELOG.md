@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/pelotech/data-sync-operator/compare/0.1.3...0.1.4) (2025-12-18)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/onsi/ginkgo/v2 to v2.27.3 ([#57](https://github.com/pelotech/data-sync-operator/issues/57)) ([eac1e6e](https://github.com/pelotech/data-sync-operator/commit/eac1e6e13534bb9c520a87052d67eff24abcd3fb))
+
 ## [0.1.3](https://github.com/pelotech/data-sync-operator/compare/0.1.2...0.1.3) (2025-12-09)
 
 
