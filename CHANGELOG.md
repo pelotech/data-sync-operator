@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/pelotech/data-sync-operator/compare/0.1.3...0.2.0) (2026-01-12)
+
+
+### Features
+
+* vmdi missing image self heal ([#63](https://github.com/pelotech/data-sync-operator/issues/63)) ([596fce3](https://github.com/pelotech/data-sync-operator/commit/596fce36cd40ad0a20360baef67b00b40267bb5b))
+
+
+### Bug Fixes
+
+* **deps:** update k8s.io/utils digest to 914a6e7 ([#65](https://github.com/pelotech/data-sync-operator/issues/65)) ([4493fec](https://github.com/pelotech/data-sync-operator/commit/4493fec16b28419e413150438c75798a951e0299))
+* **deps:** update kubernetes packages to v0.35.0 ([#61](https://github.com/pelotech/data-sync-operator/issues/61)) ([7360299](https://github.com/pelotech/data-sync-operator/commit/7360299ff7e35ad1c6c46910aee84a54396246e2))
+* **deps:** update module github.com/onsi/ginkgo/v2 to v2.27.3 ([#57](https://github.com/pelotech/data-sync-operator/issues/57)) ([eac1e6e](https://github.com/pelotech/data-sync-operator/commit/eac1e6e13534bb9c520a87052d67eff24abcd3fb))
+* **deps:** update module kubevirt.io/containerized-data-importer-api to v1.64.0 ([#62](https://github.com/pelotech/data-sync-operator/issues/62)) ([9700933](https://github.com/pelotech/data-sync-operator/commit/97009336411765a6ea524b64685030ffd316d63b))
+
 ## [0.1.3](https://github.com/pelotech/data-sync-operator/compare/0.1.2...0.1.3) (2025-12-09)
 
 
