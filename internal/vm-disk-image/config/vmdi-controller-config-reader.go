@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	defaultConcurrency            = 5 // TODO: We will need to tune this default
+	defaultConcurrency            = 10
 	defaultMaxBackoffDelay        = 1 * time.Hour
 	defaultMaxSyncDuration        = 12 * time.Hour
 	defaultMaxSyncAttemptRetries  = 3
