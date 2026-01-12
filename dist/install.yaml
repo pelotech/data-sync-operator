@@ -148,6 +148,9 @@ spec:
                 type: array
               failureCount:
                 type: integer
+              lastFailureTime:
+                format: date-time
+                type: string
               message:
                 description: A human-readable message providing more details about
                   the current phase.
@@ -158,6 +161,7 @@ spec:
                 - Syncing
                 - Ready
                 - Failed
+                - RetryableFailure
                 type: string
             required:
             - phase

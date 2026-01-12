@@ -6,38 +6,44 @@ import (
 )
 
 const (
-	defaultConcurrency     = 10 // TODO: We will need to tune this default
-	defaultRetryLimit      = 2
-	defaultBackoffDuration = 10 * time.Second
-	defaultMaxSyncDuration = 1 * time.Hour
+	defaultConcurrency            = 10
+	defaultMaxBackoffDelay        = 1 * time.Hour
+	defaultMaxSyncDuration        = 12 * time.Hour
+	defaultMaxSyncAttemptRetries  = 3
+	defaultMaxSyncAttemptDuration = 1 * time.Hour
 )
 
 type VMDiskImageControllerConfig struct {
-	Concurrency          int
-	RetryLimit           int
-	RetryBackoffDuration time.Duration
-	MaxSyncDuration      time.Duration
+	Concurrency            int
+	MaxBackoffDelay        time.Duration
+	MaxSyncDuration        time.Duration
+	MaxSyncAttemptDuration time.Duration
+	MaxSyncAttemptRetries  int
 }
 
 // This function will allow us to get the required config variables from the environment.
 // Locally this is your "env" and in production these values will come from a configmap
 func LoadVMDIControllerConfigFromEnv() VMDiskImageControllerConfig {
 	// The max amount of VMDIs we can have syncing at one time.
-	concurrency := corecfg.GetIntEnvOrDefault("CONCURRENCY", defaultConcurrency)
+	concurrency := corecfg.GetIntEnvOrDefault("MAX_VMDI_SYNC_CONCURRENCY", defaultConcurrency)
 
-	// How many times we will retry a failed sync.
-	retryLimit := corecfg.GetIntEnvOrDefault("RETRY_LIMIT", defaultRetryLimit)
+	// The longest we will ever wait to retry.
+	maxBackoffDelay := corecfg.GetDurationEnvOrDefault("MAX_SYNC_RETRY_BACKOFF_DURATION", defaultMaxBackoffDelay)
 
-	// How long we want to wait before trying to resync a failed VMDI.
-	retryBackoffDuration := corecfg.GetDurationEnvOrDefault("RETRY_BACKOFF_DURATION", defaultBackoffDuration)
-
-	// How long we will let a VMDI sit in syncing status.
+	// How long we will try to run a sync before we fail it forever.
 	maxSyncDuration := corecfg.GetDurationEnvOrDefault("MAX_SYNC_DURATION", defaultMaxSyncDuration)
 
+	// How long we will let a VMDI sit in syncing status.
+	maxAttemptDuration := corecfg.GetDurationEnvOrDefault("MAX_SYNC_ATTEMPT_DURATION", defaultMaxSyncAttemptDuration)
+
+	// How many times we will retry on a given attempt.
+	maxSyncAttemptRetries := corecfg.GetIntEnvOrDefault("MAX_SYNC_ATTEMPT_RETRIES", defaultMaxSyncAttemptRetries)
+
 	return VMDiskImageControllerConfig{
-		Concurrency:          concurrency,
-		RetryLimit:           retryLimit,
-		RetryBackoffDuration: retryBackoffDuration,
-		MaxSyncDuration:      maxSyncDuration,
+		Concurrency:            concurrency,
+		MaxBackoffDelay:        maxBackoffDelay,
+		MaxSyncAttemptDuration: maxAttemptDuration,
+		MaxSyncAttemptRetries:  maxSyncAttemptRetries,
+		MaxSyncDuration:        maxSyncDuration,
 	}
 }
