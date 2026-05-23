@@ -10,7 +10,7 @@ require (
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.35.0
-	k8s.io/utils v0.0.0-20260108192941-914a6e750570
+	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2
 	kubevirt.io/containerized-data-importer-api v1.64.0
 	sigs.k8s.io/controller-runtime v0.22.4
 )
